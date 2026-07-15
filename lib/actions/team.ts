@@ -107,3 +107,116 @@ export async function createDispatcher(
   revalidatePath("/admin/team");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------
+// Edit / deactivate team members. Admin-only (RLS also enforces this).
+// Deactivating never deletes: it flips is_active, so historical carriers,
+// loads, targets, and the audit trail are all preserved.
+// ---------------------------------------------------------------------
+
+async function adminGuard(): Promise<string | null> {
+  const me = await getProfile();
+  if (!me || me.role !== "admin") return "Only an admin can manage the team.";
+  return null;
+}
+
+// Pages that surface team data (leaderboards, targets, presence) so a change
+// shows up immediately everywhere.
+function revalidateTeamViews() {
+  revalidatePath("/admin/team");
+  revalidatePath("/team");
+  revalidatePath("/dashboard");
+  revalidatePath("/admin");
+}
+
+export async function updateSalesAgent(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const guard = await adminGuard();
+  if (guard) return { error: guard };
+  const id = fnum(fd, "id");
+  const name = fstr(fd, "real_name");
+  if (!id) return { error: "Missing agent id." };
+  if (!name) return { error: "Name is required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sales_agents")
+    .update({
+      real_name: name,
+      alias: fstr(fd, "alias"),
+      monthly_target: fnum(fd, "monthly_target") ?? 0,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidateTeamViews();
+  return { ok: true };
+}
+
+export async function updateDispatcher(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const guard = await adminGuard();
+  if (guard) return { error: guard };
+  const id = fnum(fd, "id");
+  const name = fstr(fd, "real_name");
+  if (!id) return { error: "Missing dispatcher id." };
+  if (!name) return { error: "Name is required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("dispatchers")
+    .update({
+      real_name: name,
+      alias: fstr(fd, "alias"),
+      monthly_target: fnum(fd, "monthly_target") ?? 0,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidateTeamViews();
+  return { ok: true };
+}
+
+export async function setSalesAgentActive(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const guard = await adminGuard();
+  if (guard) return { error: guard };
+  const id = fnum(fd, "id");
+  if (!id) return { error: "Missing agent id." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sales_agents")
+    .update({ is_active: fstr(fd, "active") === "true" })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidateTeamViews();
+  return { ok: true };
+}
+
+export async function setDispatcherActive(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const guard = await adminGuard();
+  if (guard) return { error: guard };
+  const id = fnum(fd, "id");
+  if (!id) return { error: "Missing dispatcher id." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("dispatchers")
+    .update({ is_active: fstr(fd, "active") === "true" })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidateTeamViews();
+  return { ok: true };
+}

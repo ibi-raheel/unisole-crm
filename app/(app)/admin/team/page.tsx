@@ -3,6 +3,15 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AgentForm, DispatcherForm } from "@/components/TeamForms";
 import { LoginForm } from "@/components/LoginForm";
+import { TeamMemberActions, type Member } from "@/components/TeamMemberActions";
+
+function StatusTag({ active }: { active: boolean }) {
+  return active ? (
+    <span className="badge badge-active">Active</span>
+  ) : (
+    <span className="badge badge-noagree">Inactive</span>
+  );
+}
 
 export default async function TeamPage() {
   const profile = await requireProfile();
@@ -38,26 +47,25 @@ export default async function TeamPage() {
                   <th>Name</th>
                   <th>Alias</th>
                   <th className="num">Target</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {(agents ?? []).map(
-                  (a: {
-                    id: number;
-                    real_name: string;
-                    alias: string | null;
-                    monthly_target: number;
-                  }) => (
-                    <tr key={a.id}>
-                      <td>{a.real_name}</td>
-                      <td>{a.alias ?? "—"}</td>
-                      <td className="num">{a.monthly_target}</td>
-                    </tr>
-                  )
-                )}
+                {((agents ?? []) as Member[]).map((a) => (
+                  <tr key={a.id} className={a.is_active ? "" : "row-inactive"}>
+                    <td>{a.real_name}</td>
+                    <td>{a.alias ?? "—"}</td>
+                    <td className="num">{a.monthly_target}</td>
+                    <td><StatusTag active={a.is_active} /></td>
+                    <td>
+                      <TeamMemberActions member={a} kind="agent" targetLabel="Monthly target (carriers)" />
+                    </td>
+                  </tr>
+                ))}
                 {(agents ?? []).length === 0 && (
                   <tr>
-                    <td colSpan={3} className="empty">
+                    <td colSpan={5} className="empty">
                       No sales agents yet.
                     </td>
                   </tr>
@@ -77,28 +85,25 @@ export default async function TeamPage() {
                   <th>Name</th>
                   <th>Alias</th>
                   <th className="num">Target ($)</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {(dispatchers ?? []).map(
-                  (d: {
-                    id: number;
-                    real_name: string;
-                    alias: string | null;
-                    monthly_target: number;
-                  }) => (
-                    <tr key={d.id}>
-                      <td>{d.real_name}</td>
-                      <td>{d.alias ?? "—"}</td>
-                      <td className="num">
-                        ${Number(d.monthly_target).toLocaleString()}
-                      </td>
-                    </tr>
-                  )
-                )}
+                {((dispatchers ?? []) as Member[]).map((d) => (
+                  <tr key={d.id} className={d.is_active ? "" : "row-inactive"}>
+                    <td>{d.real_name}</td>
+                    <td>{d.alias ?? "—"}</td>
+                    <td className="num">${Number(d.monthly_target).toLocaleString()}</td>
+                    <td><StatusTag active={d.is_active} /></td>
+                    <td>
+                      <TeamMemberActions member={d} kind="dispatcher" targetLabel="Monthly target ($)" />
+                    </td>
+                  </tr>
+                ))}
                 {(dispatchers ?? []).length === 0 && (
                   <tr>
-                    <td colSpan={3} className="empty">
+                    <td colSpan={5} className="empty">
                       No dispatchers yet.
                     </td>
                   </tr>
