@@ -192,6 +192,7 @@ export default async function CarrierDetailPage({
               <tr>
                 <th>Pickup</th>
                 <th>Route</th>
+                <th>Broker</th>
                 <th className="num">Rate</th>
                 <th className="num">Earned</th>
                 <th>Load</th>
@@ -205,6 +206,12 @@ export default async function CarrierDetailPage({
                   <td>{fmtDate(l.pickup_date)}</td>
                   <td>
                     {l.pickup_location ?? "?"} → {l.delivery_location ?? "?"}
+                  </td>
+                  <td title={l.broker_mc ? `MC ${l.broker_mc}` : undefined}>
+                    {l.broker_name ?? "—"}
+                    {l.broker_contact ? (
+                      <div className="muted" style={{ fontSize: 12 }}>{l.broker_contact}</div>
+                    ) : null}
                   </td>
                   <td className="num">${Number(l.rate).toLocaleString()}</td>
                   <td className="num">
@@ -226,7 +233,7 @@ export default async function CarrierDetailPage({
               ))}
               {(loads ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={canDispatch ? 7 : 6} className="empty">
+                  <td colSpan={canDispatch ? 8 : 7} className="empty">
                     No loads yet.
                   </td>
                 </tr>

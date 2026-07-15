@@ -92,6 +92,27 @@ export function LoadForm({
 
       <div className="form-row">
         <div className="field">
+          <label className="label" htmlFor="broker_name">
+            Broker
+          </label>
+          <input className="input" id="broker_name" name="broker_name" placeholder="Brokerage / company" />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="broker_mc">
+            Broker MC#
+          </label>
+          <input className="input" id="broker_mc" name="broker_mc" placeholder="MC-123456" />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="broker_contact">
+            Broker contact
+          </label>
+          <input className="input" id="broker_contact" name="broker_contact" placeholder="Name / phone / email" />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="field">
           <label className="label" htmlFor="rate">
             Rate ($) *
           </label>

@@ -20,6 +20,8 @@ type Row = {
   amount_earned: number;
   load_status: string;
   payment_status: string;
+  broker_name: string | null;
+  broker_mc: string | null;
   carriers: { company_name: string } | null;
 };
 
@@ -38,7 +40,7 @@ export default async function LoadsPage({
   let query = supabase
     .from("loads")
     .select(
-      "id, carrier_id, pickup_date, pickup_location, delivery_location, rate, amount_earned, load_status, payment_status, carriers(company_name)",
+      "id, carrier_id, pickup_date, pickup_location, delivery_location, rate, amount_earned, load_status, payment_status, broker_name, broker_mc, carriers(company_name)",
       { count: "exact" }
     )
     .order("pickup_date", { ascending: false })
@@ -71,6 +73,7 @@ export default async function LoadsPage({
                 <th>Carrier</th>
                 <th>Pickup</th>
                 <th>Route</th>
+                <th>Broker</th>
                 <th className="num">Rate</th>
                 <th className="num">Earned</th>
                 <th>Load</th>
@@ -89,6 +92,7 @@ export default async function LoadsPage({
                   <td>
                     {l.pickup_location ?? "?"} → {l.delivery_location ?? "?"}
                   </td>
+                  <td title={l.broker_mc ? `MC ${l.broker_mc}` : undefined}>{l.broker_name ?? "—"}</td>
                   <td className="num">${Number(l.rate).toLocaleString()}</td>
                   <td className="num">
                     ${Number(l.amount_earned).toLocaleString()}
@@ -99,7 +103,7 @@ export default async function LoadsPage({
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="empty">
+                  <td colSpan={8} className="empty">
                     No loads found.
                   </td>
                 </tr>
