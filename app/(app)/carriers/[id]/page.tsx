@@ -242,16 +242,18 @@ export default async function CarrierDetailPage({
         {(followUps ?? []).length === 0 ? (
           <p className="empty">No follow-ups logged yet.</p>
         ) : (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <div className="note-list">
             {(followUps ?? []).map((f) => (
-              <li key={f.id} style={{ marginBottom: 8 }}>
-                <strong>{f.type}</strong>{" "}
-                <span className="muted">{fmtDateTime(f.contacted_at)}</span>
-                {f.outcome ? ` — ${f.outcome}` : ""}
-                {f.notes ? <div>{f.notes}</div> : null}
-              </li>
+              <div key={f.id} className="note-item">
+                <div className="note-head">
+                  <span className="note-tag">{f.type}</span>
+                  <span className="muted">{fmtDateTime(f.contacted_at)}</span>
+                </div>
+                {f.outcome ? <div className="note-outcome">{f.outcome}</div> : null}
+                {f.notes ? <div className="note-body">{f.notes}</div> : null}
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
@@ -261,15 +263,17 @@ export default async function CarrierDetailPage({
         {(notes ?? []).length === 0 ? (
           <p className="empty">No dispatch notes yet.</p>
         ) : (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <div className="note-list">
             {(notes ?? []).map((n) => (
-              <li key={n.id} style={{ marginBottom: 8 }}>
-                <span className="muted">{fmtDateTime(n.noted_at)}</span>
-                {n.outcome ? ` — ${n.outcome}` : ""}
-                {n.note ? <div>{n.note}</div> : null}
-              </li>
+              <div key={n.id} className="note-item">
+                <div className="note-head">
+                  <span className="muted">{fmtDateTime(n.noted_at)}</span>
+                  {n.outcome ? <span className="note-tag">{n.outcome}</span> : null}
+                </div>
+                {n.note ? <div className="note-body">{n.note}</div> : null}
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 

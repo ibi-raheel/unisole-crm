@@ -9,27 +9,21 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "16px",
-      }}
-    >
-      <div className="card" style={{ width: "100%", maxWidth: 360 }}>
-        <h1 style={{ marginBottom: 4 }}>UniSole CRM</h1>
-        <p className="muted" style={{ marginTop: 0, marginBottom: 16 }}>
-          Sign in to continue.
-        </p>
+    <div className="login-shell">
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="login-logo" />
+          <span>UniSole <b>CRM</b></span>
+        </div>
+
+        <h1 className="login-title">Welcome back</h1>
+        <p className="login-sub">Sign in to your dispatch workspace.</p>
 
         {error ? <div className="error-box">{error}</div> : null}
 
         <form action={login}>
           <div className="field">
-            <label className="label" htmlFor="email">
-              Email
-            </label>
+            <label className="label" htmlFor="email">Email</label>
             <input
               className="input"
               id="email"
@@ -41,9 +35,7 @@ export default async function LoginPage({
             />
           </div>
           <div className="field">
-            <label className="label" htmlFor="password">
-              Password
-            </label>
+            <label className="label" htmlFor="password">Password</label>
             <PasswordInput
               id="password"
               name="password"
@@ -51,10 +43,12 @@ export default async function LoginPage({
               required
             />
           </div>
-          <button className="btn btn-primary" type="submit" style={{ width: "100%" }}>
+          <button className="btn btn-primary" type="submit" style={{ width: "100%", marginTop: 4 }}>
             Sign in
           </button>
         </form>
+
+        <p className="login-foot">Protected by database-level access control.</p>
       </div>
     </div>
   );

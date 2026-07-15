@@ -1,5 +1,16 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { parseUsState } from "@/lib/usStates";
+import { LoadsFlowMap } from "@/components/LoadsFlowMap";
+import { PipelineFunnel } from "@/components/PipelineFunnel";
+import {
+  IconCheckCircle,
+  IconDoc,
+  IconClock,
+  IconLayers,
+  IconRoute,
+  IconDollar,
+} from "@/components/icons";
 import Link from "next/link";
 
 function currentMonthParam(): string {
@@ -31,47 +42,204 @@ export default async function DashboardPage() {
     </>
   );
 
+  // ==================================================================
+  // ADMIN — comprehensive command center
+  // ==================================================================
   async function AdminHome() {
-    const [{ data: pipeline }, { count: stalled }] = await Promise.all([
+    type LoadRow = {
+      pickup_location: string | null;
+      delivery_location: string | null;
+      load_status: string;
+      amount_earned: number | string | null;
+      pickup_date: string | null;
+      created_at: string;
+      carriers: { company_name: string } | { company_name: string }[] | null;
+    };
+
+    const monthPrefix = month.slice(0, 7); // "YYYY-MM"
+
+    const [
+      { data: pipeline },
+      { count: stalled },
+      { data: loadsRaw },
+      { data: dispProgress },
+      { data: salesProgress },
+    ] = await Promise.all([
       supabase.from("carrier_pipeline_counts").select("*"),
+      supabase.from("stalled_carriers").select("carrier_id", { count: "exact", head: true }),
       supabase
-        .from("stalled_carriers")
-        .select("carrier_id", { count: "exact", head: true }),
+        .from("loads")
+        .select(
+          "pickup_location,delivery_location,load_status,amount_earned,pickup_date,created_at,carriers(company_name)"
+        )
+        .order("created_at", { ascending: false }),
+      supabase.rpc("admin_dispatcher_progress", { p_month: month }),
+      supabase.rpc("admin_sales_progress", { p_month: month }),
     ]);
 
-    const total = (pipeline ?? []).reduce(
-      (s: number, r: { carriers: number }) => s + Number(r.carriers),
-      0
-    );
+    const counts: Record<string, number> = {};
+    for (const r of (pipeline ?? []) as { status: string; carriers: number }[]) {
+      counts[r.status] = Number(r.carriers);
+    }
+    const total = Object.values(counts).reduce((s, n) => s + n, 0);
+    const active = counts["Active"] ?? 0;
+    const awaitingDocs = counts["Documents Sent"] ?? 0;
+
+    const loads = (loadsRaw ?? []) as LoadRow[];
+    const inTransit = loads.filter((l) => l.load_status === "En Route").length;
+    const revenueMonth = loads
+      .filter((l) => (l.pickup_date ?? "").startsWith(monthPrefix))
+      .reduce((s, l) => s + Number(l.amount_earned ?? 0), 0);
+
+    // Reduce loads to origin→destination state pairs for the map.
+    const lanes = loads
+      .map((l) => ({
+        origin: parseUsState(l.pickup_location),
+        dest: parseUsState(l.delivery_location),
+      }))
+      .filter((l): l is { origin: string; dest: string } => !!l.origin && !!l.dest);
+
+    const carrierName = (c: LoadRow["carriers"]): string =>
+      Array.isArray(c) ? c[0]?.company_name ?? "—" : c?.company_name ?? "—";
+
+    const dispatchers = (dispProgress ?? []) as {
+      dispatcher_id: number;
+      real_name: string;
+      monthly_target: number;
+      earned: number;
+    }[];
+    const agents = (salesProgress ?? []) as {
+      sales_agent_id: number;
+      real_name: string;
+      monthly_target: number;
+      carriers_signed: number;
+    }[];
 
     return (
-      <div className="grid grid-3">
-        <div className="card">
-          <div className="stat num">{total}</div>
-          <div className="stat-label">Carriers total</div>
+      <>
+        {/* Headline KPIs */}
+        <div className="kpi-grid">
+          <Kpi value={active} label="Active carriers" sub="onboarded & shipping" tone="active"
+            icon={<IconCheckCircle size={20} />} />
+          <Kpi value={awaitingDocs} label="Awaiting documents" sub="docs sent, not returned" tone="sent"
+            icon={<IconDoc size={20} />} />
+          <Kpi value={stalled ?? 0} label="Signed — not shipped" sub="stalled sales" tone="awaiting"
+            href="/admin" icon={<IconClock size={20} />} />
+          <Kpi value={total} label="Total carriers" sub="all statuses"
+            icon={<IconLayers size={20} />} />
+          <Kpi value={inTransit} label="Loads in transit" sub="en route now"
+            icon={<IconRoute size={20} />} />
+          <Kpi value={`$${Math.round(revenueMonth).toLocaleString()}`} label="Revenue this month"
+            sub="earned on pickups" tone="active" icon={<IconDollar size={20} />} />
         </div>
-        <div className="card">
-          <div className="stat num">{stalled ?? 0}</div>
-          <div className="stat-label">Signed but not shipped</div>
-          <div style={{ marginTop: 8 }}>
-            <Link href="/admin">View stalled sales →</Link>
+
+        {/* The map */}
+        <div style={{ marginTop: 16 }}>
+          <LoadsFlowMap lanes={lanes} />
+        </div>
+
+        {/* Pipeline funnel + dispatcher leaderboard */}
+        <div className="dash-2" style={{ marginTop: 16 }}>
+          <PipelineFunnel counts={counts} />
+
+          <div className="card">
+            <div className="section-title">Dispatchers vs. target (this month)</div>
+            {dispatchers.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>No dispatchers yet.</p>
+            ) : (
+              dispatchers
+                .slice()
+                .sort((a, b) => Number(b.earned) - Number(a.earned))
+                .map((d) => {
+                  const earned = Number(d.earned);
+                  const target = Number(d.monthly_target);
+                  const pct = target > 0 ? Math.min(100, (earned / target) * 100) : 0;
+                  const done = target > 0 && earned >= target;
+                  return (
+                    <div key={d.dispatcher_id} className="lead-row">
+                      <div className="lead-name">{d.real_name}</div>
+                      <div className="lead-meter">
+                        <div className="meter">
+                          <div className={`meter-fill${done ? " done" : ""}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      <div className="lead-val num">
+                        ${Math.round(earned).toLocaleString()}
+                        <span className="muted"> / ${Math.round(target).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
-        <div className="card">
-          <div className="stat-label" style={{ marginBottom: 8 }}>
-            Pipeline
+
+        {/* Sales leaderboard + recent loads */}
+        <div className="dash-2" style={{ marginTop: 16 }}>
+          <div className="card">
+            <div className="section-title">Sales agents vs. target (this month)</div>
+            {agents.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>No sales agents yet.</p>
+            ) : (
+              agents
+                .slice()
+                .sort((a, b) => Number(b.carriers_signed) - Number(a.carriers_signed))
+                .map((a) => {
+                  const signed = Number(a.carriers_signed);
+                  const target = Number(a.monthly_target);
+                  const pct = target > 0 ? Math.min(100, (signed / target) * 100) : 0;
+                  const done = target > 0 && signed >= target;
+                  return (
+                    <div key={a.sales_agent_id} className="lead-row">
+                      <div className="lead-name">{a.real_name}</div>
+                      <div className="lead-meter">
+                        <div className="meter">
+                          <div className={`meter-fill${done ? " done" : ""}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                      <div className="lead-val num">
+                        {signed}
+                        <span className="muted"> / {target}</span>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
           </div>
-          {(pipeline ?? []).map((r: { status: string; carriers: number }) => (
-            <div
-              key={r.status}
-              style={{ display: "flex", justifyContent: "space-between" }}
-            >
-              <span className="muted">{r.status}</span>
-              <span className="num">{r.carriers}</span>
-            </div>
-          ))}
+
+          <div className="card">
+            <div className="section-title">Recent loads</div>
+            {loads.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>No loads booked yet.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Carrier</th>
+                      <th>Lane</th>
+                      <th className="num">Earned</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loads.slice(0, 6).map((l, i) => (
+                      <tr key={i}>
+                        <td>{carrierName(l.carriers)}</td>
+                        <td className="muted">
+                          {(l.pickup_location ?? "?")} → {(l.delivery_location ?? "?")}
+                        </td>
+                        <td className="num">${Number(l.amount_earned ?? 0).toLocaleString()}</td>
+                        <td>{l.load_status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -245,4 +413,37 @@ export default async function DashboardPage() {
       </div>
     );
   }
+}
+
+// KPI tile
+function Kpi({
+  value,
+  label,
+  sub,
+  tone,
+  href,
+  icon,
+}: {
+  value: number | string;
+  label: string;
+  sub?: string;
+  tone?: "active" | "sent" | "awaiting";
+  href?: string;
+  icon?: React.ReactNode;
+}) {
+  const body = (
+    <div className={`card kpi${tone ? ` kpi-${tone}` : ""}`}>
+      {icon && <div className="kpi-icon">{icon}</div>}
+      <div className="num kpi-num">{value}</div>
+      <div className="kpi-label">{label}</div>
+      {sub && <div className="kpi-sub">{sub}</div>}
+    </div>
+  );
+  return href ? (
+    <Link href={href} className="kpi-link">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
 }

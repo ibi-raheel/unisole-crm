@@ -1,6 +1,6 @@
 import { requireProfile } from "@/lib/auth";
-import { logout } from "@/app/login/actions";
-import { TopNav } from "@/components/TopNav";
+import { Sidebar } from "@/components/Sidebar";
+import { PresenceTracker } from "@/components/PresenceTracker";
 
 // Every signed-in page shows per-user data behind row-level security, so it
 // must render fresh on every request and never be cached/shared between users.
@@ -14,15 +14,17 @@ export default async function AppLayout({
 }) {
   const profile = await requireProfile();
 
-  const items = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/carriers", label: "Carriers" },
+  const items: { href: string; label: string; icon: string }[] = [
+    { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+    { href: "/carriers", label: "Carriers", icon: "truck" },
   ];
   if (profile.role === "dispatcher" || profile.role === "admin") {
-    items.push({ href: "/loads", label: "Loads" });
+    items.push({ href: "/loads", label: "Loads", icon: "box" });
   }
   if (profile.role === "admin") {
-    items.push({ href: "/admin", label: "Admin" });
+    items.push({ href: "/team", label: "Team", icon: "users" });
+    items.push({ href: "/activity", label: "Activity", icon: "activity" });
+    items.push({ href: "/admin", label: "Admin", icon: "shield" });
   }
 
   const roleLabel =
@@ -35,29 +37,12 @@ export default async function AppLayout({
           : profile.role;
 
   return (
-    <>
-      <header className="topbar">
-        <span className="brand">UniSole</span>
-        <TopNav items={items} />
-        <div className="user">
-          <span title={profile.email ?? ""}>{roleLabel}</span>
-          <form action={logout}>
-            <button
-              className="btn"
-              style={{
-                padding: "4px 10px",
-                background: "transparent",
-                color: "#fff",
-                borderColor: "rgba(255,255,255,0.35)",
-              }}
-              type="submit"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-      </header>
-      <main className="page">{children}</main>
-    </>
+    <div className="app-shell">
+      <PresenceTracker />
+      <Sidebar items={items} roleLabel={roleLabel} email={profile.email ?? ""} />
+      <div className="app-main">
+        <main className="page">{children}</main>
+      </div>
+    </div>
   );
 }
