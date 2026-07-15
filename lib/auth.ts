@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -13,7 +14,13 @@ export type Profile = {
 };
 
 // Returns the logged-in user's profile, or null if not signed in / no profile.
-export async function getProfile(): Promise<Profile | null> {
+//
+// Wrapped in React cache() so it runs at most ONCE per request: the layout and
+// the page both call requireProfile(), and without this that means two
+// getUser() round-trips + two profiles queries per navigation. cache() dedupes
+// them within a single server render (it never persists across requests, so
+// row-level security still applies per user).
+export const getProfile = cache(async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,12 +29,12 @@ export async function getProfile(): Promise<Profile | null> {
 
   const { data } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, email, role, linked_agent_id, linked_dispatcher_id, is_active")
     .eq("id", user.id)
     .single();
 
   return (data as Profile) ?? null;
-}
+});
 
 // Use at the top of any protected page. Guarantees a profile or redirects.
 export async function requireProfile(): Promise<Profile> {
