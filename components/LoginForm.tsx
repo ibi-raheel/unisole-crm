@@ -88,7 +88,7 @@ export function LoginForm({
         </div>
         <div className="field">
           <label className="label">Password (min 6 characters)</label>
-          <PasswordInput name="password" required minLength={6} />
+          <PasswordInput name="password" required minLength={8} />
         </div>
       </div>
 

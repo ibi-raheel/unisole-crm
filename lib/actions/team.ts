@@ -50,8 +50,8 @@ export async function createUserLogin(
   const dispId = fnum(fd, "linked_dispatcher_id");
 
   if (!email || !password) return { error: "Email and password are required." };
-  if (password.length < 6)
-    return { error: "Password must be at least 6 characters." };
+  if (password.length < 8)
+    return { error: "Password must be at least 8 characters." };
   if (role !== "sales_agent" && role !== "dispatcher" && role !== "admin")
     return { error: "Pick a role." };
   if (role === "sales_agent" && !agentId)
