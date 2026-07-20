@@ -5,12 +5,12 @@ import { getProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FormState, fstr, fnum } from "./_util";
+import { fileChangeRequest } from "./approvals";
 
 export async function createLoad(
   _prev: FormState,
   fd: FormData
 ): Promise<FormState> {
-  const supabase = await createClient();
   const profile = await getProfile();
   if (!profile) return { error: "Not signed in." };
 
@@ -29,7 +29,7 @@ export async function createLoad(
   if (rate == null) return { error: "Rate is required." };
   if (pct == null) return { error: "Service charge % is required." };
 
-  const { error } = await supabase.from("loads").insert({
+  const payload = {
     carrier_id: carrierId,
     dispatcher_id: dispId,
     pickup_date: fstr(fd, "pickup_date"),
@@ -45,7 +45,18 @@ export async function createLoad(
     payment_route: fstr(fd, "payment_route"),
     load_status: fstr(fd, "load_status") ?? "En Route",
     remarks: fstr(fd, "remarks"),
-  });
+  };
+
+  if (profile.role !== "admin") {
+    return fileChangeRequest({
+      kind: "create_load",
+      payload,
+      summary: `New load for carrier #${carrierId} ($${Math.round(rate).toLocaleString()})`,
+    });
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("loads").insert(payload);
 
   if (error) return { error: error.message };
   revalidatePath("/loads");
@@ -68,6 +79,18 @@ export async function setLoadStatus(
   const ps = fstr(fd, "payment_status");
   if (ls) patch.load_status = ls;
   if (ps) patch.payment_status = ps;
+
+  const profile = await getProfile();
+  if (!profile) return { error: "Not signed in." };
+  if (profile.role !== "admin") {
+    const parts = [ls, ps].filter(Boolean).join(" / ");
+    return fileChangeRequest({
+      kind: "set_load_status",
+      payload: patch,
+      targetId: id,
+      summary: `Load #${id} → ${parts}`,
+    });
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("loads").update(patch).eq("id", id);

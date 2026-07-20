@@ -1,4 +1,4 @@
-export type FormState = { error?: string; ok?: boolean };
+export type FormState = { error?: string; ok?: boolean; message?: string };
 
 // Read a trimmed string from a form, or null if empty.
 export function fstr(fd: FormData, key: string): string | null {

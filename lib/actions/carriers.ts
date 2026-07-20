@@ -5,12 +5,12 @@ import { getProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FormState, fstr, fnum, today } from "./_util";
+import { fileChangeRequest } from "./approvals";
 
 export async function createCarrier(
   _prev: FormState,
   fd: FormData
 ): Promise<FormState> {
-  const supabase = await createClient();
   const profile = await getProfile();
   if (!profile) return { error: "Not signed in." };
 
@@ -24,24 +24,36 @@ export async function createCarrier(
       : fnum(fd, "sales_agent_id");
   if (!agentId) return { error: "Please choose a sales agent." };
 
+  const payload = {
+    company_name: company,
+    contact_person: fstr(fd, "contact_person"),
+    phone: fstr(fd, "phone"),
+    email: fstr(fd, "email"),
+    mc_number: fstr(fd, "mc_number"),
+    mc_age: fstr(fd, "mc_age"),
+    truck_type_id: fnum(fd, "truck_type_id"),
+    sales_agent_id: agentId,
+    lead_source: fstr(fd, "lead_source"),
+    remarks: fstr(fd, "remarks"),
+    docs_sent_at: fstr(fd, "docs_sent_at"),
+    docs_received_at: fstr(fd, "docs_received_at"),
+    status: fstr(fd, "status") ?? "Lead",
+    created_by: profile.id,
+  };
+
+  // Everyone except admin files this for approval instead of creating directly.
+  if (profile.role !== "admin") {
+    return fileChangeRequest({
+      kind: "create_carrier",
+      payload,
+      summary: `New carrier “${company}”`,
+    });
+  }
+
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("carriers")
-    .insert({
-      company_name: company,
-      contact_person: fstr(fd, "contact_person"),
-      phone: fstr(fd, "phone"),
-      email: fstr(fd, "email"),
-      mc_number: fstr(fd, "mc_number"),
-      mc_age: fstr(fd, "mc_age"),
-      truck_type_id: fnum(fd, "truck_type_id"),
-      sales_agent_id: agentId,
-      lead_source: fstr(fd, "lead_source"),
-      remarks: fstr(fd, "remarks"),
-      docs_sent_at: fstr(fd, "docs_sent_at"),
-      docs_received_at: fstr(fd, "docs_received_at"),
-      status: fstr(fd, "status") ?? "Lead",
-      created_by: profile.id,
-    })
+    .insert(payload)
     .select("id")
     .single();
 
@@ -90,6 +102,17 @@ export async function setCarrierStatus(
   const status = fstr(fd, "status");
   if (!id || !status) return { error: "Missing carrier or status." };
 
+  const profile = await getProfile();
+  if (!profile) return { error: "Not signed in." };
+  if (profile.role !== "admin") {
+    return fileChangeRequest({
+      kind: "set_carrier_status",
+      payload: { status },
+      targetId: id,
+      summary: `Carrier #${id} → ${status}`,
+    });
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("carriers")
@@ -103,10 +126,13 @@ export async function setCarrierStatus(
 
 // One-click milestones: move the status AND stamp the matching date together,
 // so the sales target (which counts by docs-received date) updates on its own.
-export async function markMilestone(formData: FormData): Promise<void> {
-  const id = fnum(formData, "carrier_id");
-  const milestone = fstr(formData, "milestone");
-  if (!id || !milestone) return;
+export async function markMilestone(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const id = fnum(fd, "carrier_id");
+  const milestone = fstr(fd, "milestone");
+  if (!id || !milestone) return { error: "Missing milestone." };
 
   const patch: Record<string, string> = {};
   if (milestone === "docs_sent") {
@@ -120,12 +146,25 @@ export async function markMilestone(formData: FormData): Promise<void> {
   } else if (milestone === "no_agreement") {
     patch.status = "No Agreement";
   } else {
-    return;
+    return { error: "Unknown milestone." };
+  }
+
+  const profile = await getProfile();
+  if (!profile) return { error: "Not signed in." };
+  if (profile.role !== "admin") {
+    return fileChangeRequest({
+      kind: "set_carrier_status",
+      payload: patch,
+      targetId: id,
+      summary: `Carrier #${id} → ${patch.status}`,
+    });
   }
 
   const supabase = await createClient();
-  await supabase.from("carriers").update(patch).eq("id", id);
+  const { error } = await supabase.from("carriers").update(patch).eq("id", id);
+  if (error) return { error: error.message };
   revalidatePath(`/carriers/${id}`);
+  return { ok: true };
 }
 
 // Admin only — assign or change the dispatcher. The database enforces both the

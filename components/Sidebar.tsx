@@ -10,10 +10,11 @@ import {
   IconUsers,
   IconShield,
   IconActivity,
+  IconInbox,
   IconLogout,
 } from "@/components/icons";
 
-type NavItem = { href: string; label: string; icon: string };
+type NavItem = { href: string; label: string; icon: string; badge?: number };
 
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   dashboard: IconDashboard,
@@ -22,6 +23,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number; className?: str
   users: IconUsers,
   shield: IconShield,
   activity: IconActivity,
+  inbox: IconInbox,
 };
 
 export function Sidebar({
@@ -51,6 +53,7 @@ export function Sidebar({
             <Link key={i.href} href={i.href} className={`side-link${active ? " active" : ""}`}>
               <Icon size={19} className="side-icon" />
               <span>{i.label}</span>
+              {i.badge ? <span className="side-badge">{i.badge}</span> : null}
             </Link>
           );
         })}

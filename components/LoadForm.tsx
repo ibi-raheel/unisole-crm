@@ -27,6 +27,7 @@ export function LoadForm({
   return (
     <form action={action} className="card">
       {state.error ? <div className="error-box">{state.error}</div> : null}
+      {state.message ? <div className="ok-box">{state.message}</div> : null}
 
       <div className="form-row">
         {presetCarrierId ? (

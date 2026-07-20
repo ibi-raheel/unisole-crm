@@ -24,8 +24,10 @@ export function LoadStatusControl({
   const router = useRouter();
 
   useEffect(() => {
-    if (state.ok) router.refresh();
-  }, [state.ok, router]);
+    // On a direct (admin) change, refresh to show it. A pending request
+    // changes nothing yet, so just show the message.
+    if (state.ok && !state.message) router.refresh();
+  }, [state.ok, state.message, router]);
 
   return (
     <form action={action} className="pill-row">
@@ -47,6 +49,9 @@ export function LoadStatusControl({
         <span className="error-box" style={{ margin: 0 }}>
           {state.error}
         </span>
+      ) : null}
+      {state.message ? (
+        <span className="muted" style={{ fontSize: 12 }}>{state.message}</span>
       ) : null}
     </form>
   );

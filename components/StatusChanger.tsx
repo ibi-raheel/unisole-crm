@@ -40,7 +40,11 @@ export function StatusChanger({
           ))}
         </select>
         <SubmitButton className="btn">Update status</SubmitButton>
-        {state.ok ? <span className="muted">Saved ✓</span> : null}
+        {state.message ? (
+          <span className="muted">{state.message}</span>
+        ) : state.ok ? (
+          <span className="muted">Saved ✓</span>
+        ) : null}
       </div>
       <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
         &ldquo;Awaiting first load&rdquo; and &ldquo;Active&rdquo; aren&rsquo;t

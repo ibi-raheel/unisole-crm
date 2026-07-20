@@ -76,6 +76,15 @@ export function IconActivity({ size = 20, className }: IconProps) {
   );
 }
 
+export function IconInbox({ size = 20, className }: IconProps) {
+  return (
+    <svg {...base(size, className)}>
+      <path d="M3 13l3 0 2 3h8l2-3 3 0" />
+      <path d="M4 13l2-8h12l2 8v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" />
+    </svg>
+  );
+}
+
 export function IconLogout({ size = 18, className }: IconProps) {
   return (
     <svg {...base(size, className)}>
