@@ -22,13 +22,15 @@ type EventRow = {
 };
 
 function roleLabel(role: string): string {
-  return role === "sales_agent"
-    ? "Sales agent"
-    : role === "dispatcher"
-      ? "Dispatcher"
-      : role === "admin"
-        ? "Admin"
-        : role;
+  const labels: Record<string, string> = {
+    sales_agent: "Sales agent",
+    dispatcher: "Dispatcher",
+    sales_head: "Sales head",
+    dispatch_head: "Dispatch head",
+    admin: "Admin",
+    system: "System",
+  };
+  return labels[role] ?? role;
 }
 
 // Very small user-agent summariser — enough to tell devices apart.
@@ -61,9 +63,19 @@ const ORDER: Record<Presence, number> = { online: 0, idle: 1, offline: 2 };
 
 export default async function ActivityPage() {
   const profile = await requireProfile();
-  if (profile.role !== "admin") {
-    return <div className="card empty">Admins only.</div>;
+  const canView =
+    profile.role === "admin" ||
+    profile.role === "sales_head" ||
+    profile.role === "dispatch_head";
+  if (!canView) {
+    return <div className="card empty">Not allowed.</div>;
   }
+  const scopeNote =
+    profile.role === "sales_head"
+      ? "Showing your sales team."
+      : profile.role === "dispatch_head"
+        ? "Showing your dispatch team."
+        : null;
 
   const supabase = await createClient();
   const now = Date.now();
@@ -113,6 +125,7 @@ export default async function ActivityPage() {
           <h1>Activity</h1>
           <p className="muted" style={{ fontSize: 13, margin: "4px 0 0" }}>
             Who&apos;s online right now, and a log of every sign-in and sign-out.
+            {scopeNote ? ` ${scopeNote}` : ""}
           </p>
         </div>
         <div className="pill-row">

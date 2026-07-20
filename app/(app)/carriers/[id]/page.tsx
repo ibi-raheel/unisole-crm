@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { LifecycleStrip } from "@/components/LifecycleStrip";
 import { StatusChanger } from "@/components/StatusChanger";
 import { DispatcherAssigner } from "@/components/DispatcherAssigner";
+import { AgentAssigner } from "@/components/AgentAssigner";
 import { FollowUpModal } from "@/components/FollowUpModal";
 import { DispatchNoteModal } from "@/components/DispatchNoteModal";
 import { LoadStatusControl } from "@/components/LoadStatusControl";
@@ -29,8 +30,10 @@ export default async function CarrierDetailPage({
   const supabase = await createClient();
 
   const isAdmin = profile.role === "admin";
-  const canFollowUp = profile.role === "sales_agent" || isAdmin;
-  const canDispatch = profile.role === "dispatcher" || isAdmin;
+  const canReassignDispatcher = isAdmin || profile.role === "dispatch_head";
+  const canReassignAgent = isAdmin || profile.role === "sales_head";
+  const canDispatch =
+    isAdmin || profile.role === "dispatcher" || profile.role === "dispatch_head";
 
   const { data: carrier } = await supabase
     .from("carriers")
@@ -42,12 +45,27 @@ export default async function CarrierDetailPage({
 
   if (!carrier) notFound();
 
+  // A sales agent can act on their carrier only until it goes Active; after
+  // handoff they keep a read-only view. Admins can always edit.
+  const canFollowUp =
+    isAdmin ||
+    profile.role === "sales_head" ||
+    (profile.role === "sales_agent" && !carrier.first_load_delivered_at);
+  // Whether to show the Actions card at all (edit controls, reassignment, or
+  // dispatch tools).
+  const showActions =
+    canFollowUp || canDispatch || canReassignDispatcher || canReassignAgent;
+
+  type PersonRow = { id: number; real_name: string; alias: string | null };
+  const emptyPeople = Promise.resolve({ data: [] as PersonRow[] });
+
   const [
     { data: history },
     { data: followUps },
     { data: notes },
     { data: loads },
     { data: dispatchers },
+    { data: agents },
   ] = await Promise.all([
     supabase
       .from("carrier_status_history")
@@ -69,18 +87,29 @@ export default async function CarrierDetailPage({
       .select("*")
       .eq("carrier_id", carrierId)
       .order("pickup_date", { ascending: false }),
-    isAdmin
+    canReassignDispatcher
       ? supabase
           .from("dispatchers")
           .select("id, real_name, alias")
           .eq("is_active", true)
           .order("real_name")
-      : Promise.resolve({ data: [] as { id: number; real_name: string; alias: string | null }[] }),
+      : emptyPeople,
+    canReassignAgent
+      ? supabase
+          .from("sales_agents")
+          .select("id, real_name, alias")
+          .eq("is_active", true)
+          .order("real_name")
+      : emptyPeople,
   ]);
 
   const dispatcherOpts = (dispatchers ?? []).map((d) => ({
     id: d.id,
     label: d.alias ? `${d.real_name} (${d.alias})` : d.real_name,
+  }));
+  const agentOpts = (agents ?? []).map((a) => ({
+    id: a.id,
+    label: a.alias ? `${a.real_name} (${a.alias})` : a.real_name,
   }));
 
   return (
@@ -94,9 +123,11 @@ export default async function CarrierDetailPage({
         </div>
         <div className="pill-row">
           <StatusBadge status={carrier.status} />
-          <Link className="btn" href={`/carriers/${carrierId}/edit`}>
-            Edit details
-          </Link>
+          {canFollowUp ? (
+            <Link className="btn" href={`/carriers/${carrierId}/edit`}>
+              Edit details
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -108,41 +139,62 @@ export default async function CarrierDetailPage({
         />
       </div>
 
-      {/* Actions */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <p className="section-title">Actions</p>
-        {canFollowUp ? (
-          <div style={{ marginBottom: 12 }}>
-            <label className="label">Quick milestones</label>
-            <MilestoneButtons carrierId={carrierId} status={carrier.status} />
-          </div>
-        ) : null}
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div>
-            <label className="label">Change status</label>
-            <StatusChanger carrierId={carrierId} current={carrier.status} />
-          </div>
-          {isAdmin ? (
-            <div>
-              <label className="label">Assign dispatcher</label>
-              <DispatcherAssigner
-                carrierId={carrierId}
-                current={carrier.dispatcher_id}
-                dispatchers={dispatcherOpts}
-              />
+      {/* Actions — hidden entirely for read-only viewers (e.g. an agent whose
+          carrier has gone Active and handed off to dispatch). */}
+      {showActions ? (
+        <div className="card" style={{ marginTop: 16 }}>
+          <p className="section-title">Actions</p>
+
+          {canFollowUp ? (
+            <div style={{ marginBottom: 12 }}>
+              <label className="label">Quick milestones</label>
+              <MilestoneButtons carrierId={carrierId} status={carrier.status} />
             </div>
           ) : null}
+
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}
+          >
+            {canFollowUp ? (
+              <div>
+                <label className="label">Change status</label>
+                <StatusChanger carrierId={carrierId} current={carrier.status} />
+              </div>
+            ) : null}
+            {canReassignAgent ? (
+              <div>
+                <label className="label">Sales agent</label>
+                <AgentAssigner
+                  carrierId={carrierId}
+                  current={carrier.sales_agent_id}
+                  agents={agentOpts}
+                />
+              </div>
+            ) : null}
+            {canReassignDispatcher ? (
+              <div>
+                <label className="label">Dispatcher</label>
+                <DispatcherAssigner
+                  carrierId={carrierId}
+                  current={carrier.dispatcher_id}
+                  dispatchers={dispatcherOpts}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="pill-row" style={{ marginTop: 12 }}>
+            {canFollowUp ? <FollowUpModal carrierId={carrierId} /> : null}
+            {canDispatch ? <DispatchNoteModal carrierId={carrierId} /> : null}
+            {canDispatch ? (
+              <Link className="btn" href={`/loads/new?carrier=${carrierId}`}>
+                Add load
+              </Link>
+            ) : null}
+          </div>
         </div>
-        <div className="pill-row" style={{ marginTop: 12 }}>
-          {canFollowUp ? <FollowUpModal carrierId={carrierId} /> : null}
-          {canDispatch ? <DispatchNoteModal carrierId={carrierId} /> : null}
-          {canDispatch ? (
-            <Link className="btn" href={`/loads/new?carrier=${carrierId}`}>
-              Add load
-            </Link>
-          ) : null}
-        </div>
-      </div>
+      ) : null}
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", marginTop: 16 }}>
         <div className="card">

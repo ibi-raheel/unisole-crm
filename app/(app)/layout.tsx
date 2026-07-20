@@ -14,27 +14,31 @@ export default async function AppLayout({
 }) {
   const profile = await requireProfile();
 
+  const role = profile.role;
   const items: { href: string; label: string; icon: string }[] = [
     { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
     { href: "/carriers", label: "Carriers", icon: "truck" },
   ];
-  if (profile.role === "dispatcher" || profile.role === "admin") {
+  if (role === "dispatcher" || role === "dispatch_head" || role === "admin") {
     items.push({ href: "/loads", label: "Loads", icon: "box" });
   }
-  if (profile.role === "admin") {
-    items.push({ href: "/team", label: "Team", icon: "users" });
+  if (role === "admin" || role === "sales_head" || role === "dispatch_head") {
     items.push({ href: "/activity", label: "Activity", icon: "activity" });
+  }
+  if (role === "admin") {
+    items.push({ href: "/team", label: "Team", icon: "users" });
     items.push({ href: "/admin", label: "Admin", icon: "shield" });
   }
 
-  const roleLabel =
-    profile.role === "sales_agent"
-      ? "Sales agent"
-      : profile.role === "dispatcher"
-        ? "Dispatcher"
-        : profile.role === "admin"
-          ? "Admin"
-          : profile.role;
+  const roleLabels: Record<string, string> = {
+    sales_agent: "Sales agent",
+    dispatcher: "Dispatcher",
+    sales_head: "Sales head",
+    dispatch_head: "Dispatch head",
+    admin: "Admin",
+    system: "System",
+  };
+  const roleLabel = roleLabels[role] ?? role;
 
   return (
     <div className="app-shell">

@@ -29,7 +29,9 @@ export default async function DashboardPage() {
         <h1>Dashboard</h1>
       </div>
 
-      {profile.role === "admin" && <AdminHome />}
+      {(profile.role === "admin" ||
+        profile.role === "sales_head" ||
+        profile.role === "dispatch_head") && <AdminHome />}
       {profile.role === "sales_agent" && (
         <SalesHome agentId={profile.linked_agent_id} month={month} />
       )}

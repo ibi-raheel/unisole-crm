@@ -2,7 +2,13 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-export type Role = "sales_agent" | "dispatcher" | "admin" | "system";
+export type Role =
+  | "sales_agent"
+  | "dispatcher"
+  | "sales_head"
+  | "dispatch_head"
+  | "admin"
+  | "system";
 
 export type Profile = {
   id: string;

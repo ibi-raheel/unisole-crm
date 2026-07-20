@@ -12,7 +12,13 @@ export function SubmitButton({
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={className} disabled={pending}>
-      {pending ? "Saving…" : children}
+      {pending ? (
+        <>
+          <span className="spinner" /> Saving…
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

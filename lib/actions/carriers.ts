@@ -151,3 +151,26 @@ export async function assignDispatcher(
   revalidatePath(`/carriers/${id}`);
   return { ok: true };
 }
+
+// Reassign a carrier's sales agent. Permitted only for admin / sales_head
+// (enforced by the DB trigger + RLS); every change is logged to
+// carrier_agent_history. sales_agent_id is NOT NULL, so an agent is required.
+export async function assignSalesAgent(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const id = fnum(fd, "carrier_id");
+  const agentId = fnum(fd, "sales_agent_id");
+  if (!id) return { error: "Missing carrier." };
+  if (!agentId) return { error: "Choose a sales agent." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("carriers")
+    .update({ sales_agent_id: agentId })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/carriers/${id}`);
+  return { ok: true };
+}

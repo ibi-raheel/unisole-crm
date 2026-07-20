@@ -48,6 +48,8 @@ export function LoginForm({
           >
             <option value="sales_agent">Sales agent</option>
             <option value="dispatcher">Dispatcher</option>
+            <option value="sales_head">Sales head</option>
+            <option value="dispatch_head">Dispatch head</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -87,7 +89,7 @@ export function LoginForm({
           <input className="input" name="email" type="email" required />
         </div>
         <div className="field">
-          <label className="label">Password (min 6 characters)</label>
+          <label className="label">Password (min 8 characters)</label>
           <PasswordInput name="password" required minLength={8} />
         </div>
       </div>

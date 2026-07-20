@@ -52,8 +52,14 @@ export async function createUserLogin(
   if (!email || !password) return { error: "Email and password are required." };
   if (password.length < 8)
     return { error: "Password must be at least 8 characters." };
-  if (role !== "sales_agent" && role !== "dispatcher" && role !== "admin")
-    return { error: "Pick a role." };
+  const validRoles = [
+    "sales_agent",
+    "dispatcher",
+    "sales_head",
+    "dispatch_head",
+    "admin",
+  ];
+  if (!role || !validRoles.includes(role)) return { error: "Pick a role." };
   if (role === "sales_agent" && !agentId)
     return { error: "Choose which sales agent this login is for." };
   if (role === "dispatcher" && !dispId)
