@@ -9,6 +9,10 @@ export default async function NewLoadPage({
   searchParams: Promise<{ carrier?: string }>;
 }) {
   const profile = await requireProfile();
+  // Dispatchers are view-only; only admin / dispatch head can book loads.
+  if (profile.role !== "admin" && profile.role !== "dispatch_head") {
+    return <div className="card empty">Only an admin or dispatch head can add loads.</div>;
+  }
   const sp = await searchParams;
   const preset = sp.carrier ? Number(sp.carrier) : undefined;
   const supabase = await createClient();
@@ -48,7 +52,7 @@ export default async function NewLoadPage({
       <LoadForm
         carriers={carrierOpts}
         dispatchers={dispatcherOpts}
-        isAdmin={profile.role === "admin"}
+        isAdmin={profile.role === "admin" || profile.role === "dispatch_head"}
         presetCarrierId={preset}
       />
     </>

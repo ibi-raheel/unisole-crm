@@ -5,7 +5,6 @@ import { getProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FormState, fstr, fnum, today } from "./_util";
-import { fileChangeRequest } from "./approvals";
 
 export async function createCarrier(
   _prev: FormState,
@@ -40,15 +39,6 @@ export async function createCarrier(
     status: fstr(fd, "status") ?? "Lead",
     created_by: profile.id,
   };
-
-  // Everyone except admin files this for approval instead of creating directly.
-  if (profile.role !== "admin") {
-    return fileChangeRequest({
-      kind: "create_carrier",
-      payload,
-      summary: `New carrier “${company}”`,
-    });
-  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -102,17 +92,6 @@ export async function setCarrierStatus(
   const status = fstr(fd, "status");
   if (!id || !status) return { error: "Missing carrier or status." };
 
-  const profile = await getProfile();
-  if (!profile) return { error: "Not signed in." };
-  if (profile.role !== "admin") {
-    return fileChangeRequest({
-      kind: "set_carrier_status",
-      payload: { status },
-      targetId: id,
-      summary: `Carrier #${id} → ${status}`,
-    });
-  }
-
   const supabase = await createClient();
   const { error } = await supabase
     .from("carriers")
@@ -147,17 +126,6 @@ export async function markMilestone(
     patch.status = "No Agreement";
   } else {
     return { error: "Unknown milestone." };
-  }
-
-  const profile = await getProfile();
-  if (!profile) return { error: "Not signed in." };
-  if (profile.role !== "admin") {
-    return fileChangeRequest({
-      kind: "set_carrier_status",
-      payload: patch,
-      targetId: id,
-      summary: `Carrier #${id} → ${patch.status}`,
-    });
   }
 
   const supabase = await createClient();

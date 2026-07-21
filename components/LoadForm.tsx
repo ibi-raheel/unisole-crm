@@ -187,8 +187,8 @@ export function LoadForm({
       </div>
 
       <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>
-        Note: saving a load as <strong>Delivered</strong> automatically marks its
-        carrier <strong>Active</strong>.
+        Note: booking a load automatically marks its carrier{" "}
+        <strong>Active</strong> (Active on pickup).
       </p>
 
       <SubmitButton>Save load</SubmitButton>

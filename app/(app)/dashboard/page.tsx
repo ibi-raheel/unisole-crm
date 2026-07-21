@@ -555,77 +555,115 @@ export default async function DashboardPage() {
         <div className="card empty">No dispatcher is linked to your login.</div>
       );
 
-    const [{ data: earned }, { data: disp }, { data: pipeline }] =
+    type LoadRow = {
+      pickup_location: string | null;
+      delivery_location: string | null;
+      load_status: string;
+      pickup_date: string | null;
+      amount_earned: number | string | null;
+      carriers: { company_name: string } | { company_name: string }[] | null;
+    };
+
+    const [{ data: earned }, { data: pipeline }, { data: loadsRaw }] =
       await Promise.all([
         supabase.rpc("dispatcher_month_earned", {
           p_dispatcher_id: dispatcherId,
           p_month: month,
         }),
-        supabase
-          .from("dispatchers")
-          .select("real_name, monthly_target")
-          .eq("id", dispatcherId)
-          .single(),
         supabase.from("carrier_pipeline_counts").select("*"),
+        supabase
+          .from("loads")
+          .select(
+            "pickup_location, delivery_location, load_status, pickup_date, amount_earned, carriers(company_name)"
+          )
+          .order("pickup_date", { ascending: false }),
       ]);
 
-    const target = Number(disp?.monthly_target ?? 0);
+    const counts: Record<string, number> = {};
+    for (const r of (pipeline ?? []) as { status: string; carriers: number }[]) {
+      counts[r.status] = Number(r.carriers);
+    }
+    const assigned = Object.values(counts).reduce((s, n) => s + n, 0);
+    const active = counts["Active"] ?? 0;
+
+    const loads = (loadsRaw ?? []) as LoadRow[];
+    const inTransit = loads.filter((l) => l.load_status === "En Route");
+    const lanes = loads
+      .map((l) => ({
+        origin: parseUsState(l.pickup_location),
+        dest: parseUsState(l.delivery_location),
+      }))
+      .filter((l): l is { origin: string; dest: string } => !!l.origin && !!l.dest);
+    const carrierName = (c: LoadRow["carriers"]): string =>
+      Array.isArray(c) ? c[0]?.company_name ?? "—" : c?.company_name ?? "—";
     const earnedNum = Number(earned ?? 0);
-    const pct = target > 0 ? Math.min(100, (earnedNum / target) * 100) : 0;
-    const done = target > 0 && earnedNum >= target;
+
+    const now = Date.now();
+    const daysInTransit = (d: string | null): number | null =>
+      d ? Math.max(0, Math.floor((now - new Date(d).getTime()) / 86_400_000)) : null;
 
     return (
-      <div className="grid grid-3">
-        <div className="card">
-          <div className="stat-label">Earned this month</div>
-          <div className="stat num">
-            ${earnedNum.toLocaleString()}
-            <span className="muted" style={{ fontSize: 18 }}>
-              {" "}
-              / ${target.toLocaleString()}
-            </span>
-          </div>
-          <div className="meter" style={{ marginTop: 8 }}>
-            <div
-              className={`meter-fill${done ? " done" : ""}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
+      <>
+        <div className="kpi-grid">
+          <Kpi value={assigned} label="Assigned carriers" sub="in your book"
+            icon={<IconLayers size={20} />} />
+          <Kpi value={active} label="Active carriers" sub="picked up & shipping" tone="active"
+            icon={<IconCheckCircle size={20} />} />
+          <Kpi value={inTransit.length} label="Loads in transit" sub="en route now"
+            icon={<IconRoute size={20} />} />
+          <Kpi value={`$${Math.round(earnedNum).toLocaleString()}`} label="Earned this month"
+            sub="on your loads" tone="active" icon={<IconDollar size={20} />} />
         </div>
 
-        <div className="card">
-          <div className="stat-label" style={{ marginBottom: 8 }}>
-            My carriers by status
-          </div>
-          {(pipeline ?? []).length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              No assigned carriers yet.
-            </p>
+        <div style={{ marginTop: 16 }}>
+          <LoadsFlowMap lanes={lanes} />
+        </div>
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="section-title">My loads · time in transit</div>
+          {loads.length === 0 ? (
+            <p className="empty" style={{ margin: 0 }}>No loads assigned to you yet.</p>
           ) : (
-            (pipeline ?? []).map((r: { status: string; carriers: number }) => (
-              <div
-                key={r.status}
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                <span className="muted">{r.status}</span>
-                <span className="num">{r.carriers}</span>
-              </div>
-            ))
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Carrier</th>
+                    <th>Lane</th>
+                    <th>Picked up</th>
+                    <th className="num">In transit</th>
+                    <th>Status</th>
+                    <th className="num">Earned</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loads.slice(0, 12).map((l, i) => {
+                    const days = daysInTransit(l.pickup_date);
+                    return (
+                      <tr key={i}>
+                        <td>{carrierName(l.carriers)}</td>
+                        <td className="muted">
+                          {(l.pickup_location ?? "?")} → {(l.delivery_location ?? "?")}
+                        </td>
+                        <td className="muted">
+                          {l.pickup_date ? new Date(l.pickup_date).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="num">
+                          {l.load_status === "En Route" && days !== null
+                            ? `${days} day${days === 1 ? "" : "s"}`
+                            : "—"}
+                        </td>
+                        <td>{l.load_status}</td>
+                        <td className="num">${Number(l.amount_earned ?? 0).toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-
-        <div className="card">
-          <div className="stat-label" style={{ marginBottom: 8 }}>
-            Quick links
-          </div>
-          <div>
-            <Link href="/carriers">My carriers →</Link>
-          </div>
-          <div>
-            <Link href="/loads">My loads →</Link>
-          </div>
-        </div>
-      </div>
+      </>
     );
   }
 }

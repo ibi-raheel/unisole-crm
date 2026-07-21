@@ -32,8 +32,8 @@ export default async function CarrierDetailPage({
   const isAdmin = profile.role === "admin";
   const canReassignDispatcher = isAdmin || profile.role === "dispatch_head";
   const canReassignAgent = isAdmin || profile.role === "sales_head";
-  const canDispatch =
-    isAdmin || profile.role === "dispatcher" || profile.role === "dispatch_head";
+  // Dispatchers are view-only now; only admin / dispatch head manage dispatch.
+  const canDispatch = isAdmin || profile.role === "dispatch_head";
 
   const { data: carrier } = await supabase
     .from("carriers")

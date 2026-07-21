@@ -48,7 +48,7 @@ export function StatusChanger({
       </div>
       <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
         &ldquo;Awaiting first load&rdquo; and &ldquo;Active&rdquo; aren&rsquo;t
-        here — they happen on their own (assign a dispatcher, or deliver a load).
+        here — they happen on their own (assign a dispatcher, or pick up a load).
       </p>
       {state.error ? (
         <div className="error-box" style={{ marginTop: 8 }}>

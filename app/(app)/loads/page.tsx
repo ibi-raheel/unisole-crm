@@ -30,7 +30,8 @@ export default async function LoadsPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
-  await requireProfile();
+  const profile = await requireProfile();
+  const canAddLoad = profile.role === "admin" || profile.role === "dispatch_head";
   const sp = await searchParams;
   const status = sp.status ?? "";
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
@@ -56,9 +57,11 @@ export default async function LoadsPage({
     <>
       <div className="page-head">
         <h1>Loads</h1>
-        <Link className="btn btn-primary" href="/loads/new">
-          + Add load
-        </Link>
+        {canAddLoad ? (
+          <Link className="btn btn-primary" href="/loads/new">
+            + Add load
+          </Link>
+        ) : null}
       </div>
 
       <Suspense fallback={null}>
