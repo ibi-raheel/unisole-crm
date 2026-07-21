@@ -5,6 +5,10 @@ import { CarrierForm } from "@/components/CarrierForm";
 
 export default async function NewCarrierPage() {
   const profile = await requireProfile();
+  // Sales agents are view-only; the sales head (manager) adds leads for them.
+  if (profile.role !== "admin" && profile.role !== "sales_head") {
+    return <div className="card empty">Only an admin or sales head can add carriers.</div>;
+  }
   const supabase = await createClient();
 
   const [{ data: agents }, { data: truckTypes }] = await Promise.all([
@@ -46,7 +50,7 @@ export default async function NewCarrierPage() {
       <CarrierForm
         agents={agentOpts}
         truckTypes={truckOpts}
-        isAdmin={profile.role === "admin"}
+        isAdmin={profile.role === "admin" || profile.role === "sales_head"}
       />
     </>
   );

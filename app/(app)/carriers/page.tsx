@@ -55,7 +55,7 @@ export default async function CarriersPage({
     <>
       <div className="page-head">
         <h1>Carriers</h1>
-        {profile.role !== "dispatcher" ? (
+        {profile.role === "admin" || profile.role === "sales_head" ? (
           <Link className="btn btn-primary" href="/carriers/new">
             + Add carrier
           </Link>
@@ -95,9 +95,7 @@ export default async function CarriersPage({
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={5} className="empty">
-                    No carriers found. {profile.role === "sales_agent" && (
-                      <Link href="/carriers/new">Add your first carrier →</Link>
-                    )}
+                    No carriers found.
                   </td>
                 </tr>
               )}

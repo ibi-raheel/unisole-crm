@@ -45,12 +45,9 @@ export default async function CarrierDetailPage({
 
   if (!carrier) notFound();
 
-  // A sales agent can act on their carrier only until it goes Active; after
-  // handoff they keep a read-only view. Admins can always edit.
-  const canFollowUp =
-    isAdmin ||
-    profile.role === "sales_head" ||
-    (profile.role === "sales_agent" && !carrier.first_load_delivered_at);
+  // Sales agents are view-only now (they just track their own performance).
+  // The sales head (manager) does the sales-side edits: status, follow-ups.
+  const canFollowUp = isAdmin || profile.role === "sales_head";
   // Whether to show the Actions card at all (edit controls, reassignment, or
   // dispatch tools).
   const showActions =
