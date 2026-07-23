@@ -79,3 +79,45 @@ export async function setLoadStatus(
   revalidatePath("/loads");
   return { ok: true };
 }
+
+// Admin-only: change a load's amount (rate), with a required reason. The old
+// and new rate + reason are recorded in load_amount_changes. amount_earned
+// recalculates automatically from the new rate.
+export async function editLoadAmount(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await getProfile();
+  if (!me || me.role !== "admin") {
+    return { error: "Only an admin can edit a load's amount." };
+  }
+  const id = fnum(fd, "load_id");
+  const newRate = fnum(fd, "rate");
+  const reason = fstr(fd, "reason");
+  if (!id) return { error: "Missing load." };
+  if (newRate == null || newRate < 0) return { error: "Enter a valid new amount." };
+  if (!reason) return { error: "A reason for the change is required." };
+
+  const supabase = await createClient();
+  const { data: load } = await supabase
+    .from("loads")
+    .select("rate, carrier_id")
+    .eq("id", id)
+    .single();
+  const oldRate = load?.rate ?? null;
+
+  const { error } = await supabase.from("loads").update({ rate: newRate }).eq("id", id);
+  if (error) return { error: error.message };
+
+  await supabase.from("load_amount_changes").insert({
+    load_id: id,
+    old_rate: oldRate,
+    new_rate: newRate,
+    reason,
+    changed_by: me.id,
+  });
+
+  if (load?.carrier_id) revalidatePath(`/carriers/${load.carrier_id}`);
+  revalidatePath("/loads");
+  return { ok: true };
+}

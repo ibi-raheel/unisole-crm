@@ -11,6 +11,7 @@ import { FollowUpModal } from "@/components/FollowUpModal";
 import { DispatchNoteModal } from "@/components/DispatchNoteModal";
 import { LoadStatusControl } from "@/components/LoadStatusControl";
 import { MilestoneButtons } from "@/components/MilestoneButtons";
+import { LoadAmountEditor } from "@/components/LoadAmountEditor";
 
 function fmtDate(d: string | null): string {
   return d ? new Date(d).toLocaleDateString() : "—";
@@ -45,9 +46,12 @@ export default async function CarrierDetailPage({
 
   if (!carrier) notFound();
 
-  // Sales agents are view-only now (they just track their own performance).
-  // The sales head (manager) does the sales-side edits: status, follow-ups.
-  const canFollowUp = isAdmin || profile.role === "sales_head";
+  // Sales agents can change the status of their own pre-active leads (and log
+  // follow-ups). The sales head can edit any; agents can't ADD carriers though.
+  const canFollowUp =
+    isAdmin ||
+    profile.role === "sales_head" ||
+    (profile.role === "sales_agent" && !carrier.first_load_delivered_at);
   // Whether to show the Actions card at all (edit controls, reassignment, or
   // dispatch tools).
   const showActions =
@@ -61,6 +65,7 @@ export default async function CarrierDetailPage({
     { data: followUps },
     { data: notes },
     { data: loads },
+    { data: amountChanges },
     { data: dispatchers },
     { data: agents },
   ] = await Promise.all([
@@ -84,6 +89,11 @@ export default async function CarrierDetailPage({
       .select("*")
       .eq("carrier_id", carrierId)
       .order("pickup_date", { ascending: false }),
+    supabase
+      .from("load_amount_changes")
+      .select("id, load_id, old_rate, new_rate, reason, changed_at, loads!inner(carrier_id)")
+      .eq("loads.carrier_id", carrierId)
+      .order("changed_at", { ascending: false }),
     canReassignDispatcher
       ? supabase
           .from("dispatchers")
@@ -262,7 +272,14 @@ export default async function CarrierDetailPage({
                       <div className="muted" style={{ fontSize: 12 }}>{l.broker_contact}</div>
                     ) : null}
                   </td>
-                  <td className="num">${Number(l.rate).toLocaleString()}</td>
+                  <td className="num">
+                    ${Number(l.rate).toLocaleString()}
+                    {isAdmin ? (
+                      <div style={{ marginTop: 4 }}>
+                        <LoadAmountEditor loadId={l.id} currentRate={Number(l.rate)} />
+                      </div>
+                    ) : null}
+                  </td>
                   <td className="num">
                     ${Number(l.amount_earned).toLocaleString()}
                   </td>
@@ -361,6 +378,50 @@ export default async function CarrierDetailPage({
           </table>
         </div>
       </div>
+
+      {/* Load amount changes (admin edits with a reason) */}
+      {(amountChanges ?? []).length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <p className="section-title">Load amount changes</p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Load</th>
+                  <th className="num">From</th>
+                  <th className="num">To</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(amountChanges ?? []).map(
+                  (c: {
+                    id: number;
+                    load_id: number;
+                    old_rate: number | null;
+                    new_rate: number | null;
+                    reason: string | null;
+                    changed_at: string;
+                  }) => (
+                    <tr key={c.id}>
+                      <td>{fmtDateTime(c.changed_at)}</td>
+                      <td className="muted">#{c.load_id}</td>
+                      <td className="num">
+                        {c.old_rate != null ? `$${Number(c.old_rate).toLocaleString()}` : "—"}
+                      </td>
+                      <td className="num">
+                        {c.new_rate != null ? `$${Number(c.new_rate).toLocaleString()}` : "—"}
+                      </td>
+                      <td>{c.reason ?? "—"}</td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </>
   );
 }

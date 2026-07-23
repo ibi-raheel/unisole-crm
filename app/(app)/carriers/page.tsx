@@ -25,16 +25,33 @@ type Row = {
 export default async function CarriersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string; dispatcher?: string }>;
 }) {
   const profile = await requireProfile();
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const status = sp.status ?? "";
+  const dispatcher = sp.dispatcher ?? "";
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const from = (page - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
+
+  // The dispatch head / admin can filter carriers by dispatcher.
+  const showDispatcherFilter =
+    profile.role === "admin" || profile.role === "dispatch_head";
+  const { data: dispatchersRaw } = showDispatcherFilter
+    ? await supabase
+        .from("dispatchers")
+        .select("id, real_name, alias")
+        .eq("is_active", true)
+        .order("real_name")
+    : { data: [] as { id: number; real_name: string; alias: string | null }[] };
+  const dispatcherOpts = (dispatchersRaw ?? []).map((d) => ({
+    id: d.id,
+    label: d.alias ? `${d.real_name} (${d.alias})` : d.real_name,
+  }));
+
   let query = supabase
     .from("carriers")
     .select(
@@ -46,6 +63,8 @@ export default async function CarriersPage({
 
   if (q) query = query.ilike("company_name", `%${q}%`);
   if (status) query = query.eq("status", status);
+  if (dispatcher === "none") query = query.is("dispatcher_id", null);
+  else if (dispatcher) query = query.eq("dispatcher_id", Number(dispatcher));
 
   const { data, count } = await query;
   const rows = (data ?? []) as unknown as Row[];
@@ -56,15 +75,29 @@ export default async function CarriersPage({
       <div className="page-head">
         <h1>Carriers</h1>
         {profile.role === "admin" || profile.role === "sales_head" ? (
-          <Link className="btn btn-primary" href="/carriers/new">
-            + Add carrier
-          </Link>
+          <div className="pill-row">
+            <Link className="btn" href="/reassign">
+              Reassign
+            </Link>
+            <Link className="btn btn-primary" href="/carriers/new">
+              + Add carrier
+            </Link>
+          </div>
         ) : null}
       </div>
 
       <Suspense fallback={null}>
-        <CarrierFilters />
+        <CarrierFilters dispatchers={dispatcherOpts} />
       </Suspense>
+
+      <p className="muted" style={{ fontSize: 13, margin: "0 0 10px" }}>
+        {count ?? 0} carrier{(count ?? 0) === 1 ? "" : "s"}
+        {dispatcher && dispatcher !== "none"
+          ? ` assigned to ${dispatcherOpts.find((d) => String(d.id) === dispatcher)?.label ?? "this dispatcher"}`
+          : dispatcher === "none"
+            ? " with no dispatcher"
+            : ""}
+      </p>
 
       <div className="card" style={{ padding: 0 }}>
         <div className="table-wrap">

@@ -181,3 +181,46 @@ export async function assignSalesAgent(
   revalidatePath(`/carriers/${id}`);
   return { ok: true };
 }
+
+// Bulk-reassign every carrier from one sales agent to another — EXCEPT those
+// already progressed to Documents Sent / Documents Received / Signed (those
+// stay with the agent working them). Admin or sales head only. Each moved
+// carrier is logged to carrier_agent_history by the DB trigger.
+const REASSIGN_PROTECTED = [
+  "Documents Sent",
+  "Documents Received",
+  "Signed — Awaiting First Load",
+];
+export async function reassignAllCarriers(
+  _prev: FormState,
+  fd: FormData
+): Promise<FormState> {
+  const me = await getProfile();
+  if (!me || (me.role !== "admin" && me.role !== "sales_head")) {
+    return { error: "Only an admin or sales head can reassign carriers." };
+  }
+  const fromId = fnum(fd, "from_agent_id");
+  const toId = fnum(fd, "to_agent_id");
+  if (!fromId || !toId) return { error: "Pick both agents." };
+  if (fromId === toId) return { error: "Pick two different agents." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("carriers")
+    .update({ sales_agent_id: toId })
+    .eq("sales_agent_id", fromId)
+    .not("status", "in", `("${REASSIGN_PROTECTED.join('","')}")`)
+    .select("id");
+
+  if (error) return { error: error.message };
+  const moved = data?.length ?? 0;
+  revalidatePath("/carriers");
+  revalidatePath("/reassign");
+  return {
+    ok: true,
+    message:
+      moved === 0
+        ? "Nothing moved — that agent has no movable carriers (Docs Sent / Received / Signed stay put)."
+        : `Moved ${moved} carrier${moved === 1 ? "" : "s"}. Docs Sent / Received / Signed were left with the original agent.`,
+  };
+}
