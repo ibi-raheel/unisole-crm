@@ -186,11 +186,12 @@ export async function assignSalesAgent(
 // already progressed to Documents Sent / Documents Received / Signed (those
 // stay with the agent working them). Admin or sales head only. Each moved
 // carrier is logged to carrier_agent_history by the DB trigger.
-const REASSIGN_PROTECTED = [
-  "Documents Sent",
-  "Documents Received",
-  "Signed — Awaiting First Load",
-];
+// Statuses that CAN be bulk-moved. Everything else — Documents Sent,
+// Documents Received, Signed — Awaiting First Load — stays with the original
+// agent. We list the movable ones (all plain ASCII) rather than excluding the
+// protected ones, to avoid the em-dash in "Signed — Awaiting First Load"
+// (which doesn't match the DB enum as a hand-written literal).
+const REASSIGN_MOVABLE = ["Lead", "Active", "No Agreement", "Dead"];
 export async function reassignAllCarriers(
   _prev: FormState,
   fd: FormData
@@ -209,7 +210,7 @@ export async function reassignAllCarriers(
     .from("carriers")
     .update({ sales_agent_id: toId })
     .eq("sales_agent_id", fromId)
-    .not("status", "in", `("${REASSIGN_PROTECTED.join('","')}")`)
+    .in("status", REASSIGN_MOVABLE)
     .select("id");
 
   if (error) return { error: error.message };
