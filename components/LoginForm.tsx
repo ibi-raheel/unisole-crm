@@ -47,6 +47,7 @@ export function LoginForm({
             onChange={(e) => setRole(e.target.value)}
           >
             <option value="sales_agent">Sales agent</option>
+            <option value="sales_probation">Sales agent (probation)</option>
             <option value="dispatcher">Dispatcher</option>
             <option value="sales_head">Sales head</option>
             <option value="dispatch_head">Dispatch head</option>
@@ -54,7 +55,7 @@ export function LoginForm({
           </select>
         </div>
 
-        {role === "sales_agent" ? (
+        {role === "sales_agent" || role === "sales_probation" ? (
           <div className="field">
             <label className="label">For sales agent</label>
             <select className="input" name="linked_agent_id" required>

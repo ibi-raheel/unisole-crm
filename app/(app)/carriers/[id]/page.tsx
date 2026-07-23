@@ -51,7 +51,8 @@ export default async function CarrierDetailPage({
   const canFollowUp =
     isAdmin ||
     profile.role === "sales_head" ||
-    (profile.role === "sales_agent" && !carrier.first_load_delivered_at);
+    ((profile.role === "sales_agent" || profile.role === "sales_probation") &&
+      !carrier.first_load_delivered_at);
   // Whether to show the Actions card at all (edit controls, reassignment, or
   // dispatch tools).
   const showActions =

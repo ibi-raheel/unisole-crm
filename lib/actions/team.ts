@@ -54,13 +54,15 @@ export async function createUserLogin(
     return { error: "Password must be at least 8 characters." };
   const validRoles = [
     "sales_agent",
+    "sales_probation",
     "dispatcher",
     "sales_head",
     "dispatch_head",
     "admin",
   ];
+  const isSalesPerson = role === "sales_agent" || role === "sales_probation";
   if (!role || !validRoles.includes(role)) return { error: "Pick a role." };
-  if (role === "sales_agent" && !agentId)
+  if (isSalesPerson && !agentId)
     return { error: "Choose which sales agent this login is for." };
   if (role === "dispatcher" && !dispId)
     return { error: "Choose which dispatcher this login is for." };
@@ -82,7 +84,7 @@ export async function createUserLogin(
     id: userId,
     email,
     role,
-    linked_agent_id: role === "sales_agent" ? agentId : null,
+    linked_agent_id: isSalesPerson ? agentId : null,
     linked_dispatcher_id: role === "dispatcher" ? dispId : null,
   });
   if (profErr) {

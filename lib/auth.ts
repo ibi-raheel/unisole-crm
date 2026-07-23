@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 export type Role =
   | "sales_agent"
+  | "sales_probation"
   | "dispatcher"
   | "sales_head"
   | "dispatch_head"

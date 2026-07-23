@@ -35,6 +35,7 @@ export default async function AppLayout({
 
   const roleLabels: Record<string, string> = {
     sales_agent: "Sales agent",
+    sales_probation: "Sales agent (probation)",
     dispatcher: "Dispatcher",
     sales_head: "Sales head",
     dispatch_head: "Dispatch head",

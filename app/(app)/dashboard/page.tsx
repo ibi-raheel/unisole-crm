@@ -32,7 +32,7 @@ export default async function DashboardPage() {
       {profile.role === "admin" && <AdminHome />}
       {profile.role === "sales_head" && <SalesHeadHome />}
       {profile.role === "dispatch_head" && <DispatchHeadHome />}
-      {profile.role === "sales_agent" && (
+      {(profile.role === "sales_agent" || profile.role === "sales_probation") && (
         <SalesHome agentId={profile.linked_agent_id} month={month} />
       )}
       {profile.role === "dispatcher" && (

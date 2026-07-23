@@ -186,12 +186,12 @@ export async function assignSalesAgent(
 // already progressed to Documents Sent / Documents Received / Signed (those
 // stay with the agent working them). Admin or sales head only. Each moved
 // carrier is logged to carrier_agent_history by the DB trigger.
-// Statuses that CAN be bulk-moved. Everything else — Documents Sent,
-// Documents Received, Signed — Awaiting First Load — stays with the original
-// agent. We list the movable ones (all plain ASCII) rather than excluding the
-// protected ones, to avoid the em-dash in "Signed — Awaiting First Load"
-// (which doesn't match the DB enum as a hand-written literal).
-const REASSIGN_MOVABLE = ["Lead", "Active", "No Agreement", "Dead"];
+// Statuses that CAN be bulk-moved. Anything in progress or onboarded —
+// Documents Sent, Documents Received, Signed — Awaiting First Load, and
+// Active — stays with the original agent. We list the movable ones (all plain
+// ASCII) rather than excluding the protected ones, to avoid the em-dash in
+// "Signed — Awaiting First Load" (which doesn't match the DB enum literal).
+const REASSIGN_MOVABLE = ["Lead", "No Agreement", "Dead"];
 export async function reassignAllCarriers(
   _prev: FormState,
   fd: FormData
@@ -221,7 +221,7 @@ export async function reassignAllCarriers(
     ok: true,
     message:
       moved === 0
-        ? "Nothing moved — that agent has no movable carriers (Docs Sent / Received / Signed stay put)."
-        : `Moved ${moved} carrier${moved === 1 ? "" : "s"}. Docs Sent / Received / Signed were left with the original agent.`,
+        ? "Nothing moved — that agent has no movable carriers (Docs Sent / Received / Signed / Active stay put)."
+        : `Moved ${moved} carrier${moved === 1 ? "" : "s"}. Docs Sent / Received / Signed / Active were left with the original agent.`,
   };
 }

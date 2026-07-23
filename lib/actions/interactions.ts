@@ -22,7 +22,7 @@ export async function logFollowUp(
     .single();
 
   const agentId =
-    profile?.role === "sales_agent"
+    profile?.role === "sales_agent" || profile?.role === "sales_probation"
       ? profile.linked_agent_id
       : carrier?.sales_agent_id;
   if (!agentId) return { error: "This carrier has no sales agent." };

@@ -43,8 +43,9 @@ export function ReassignForm({ agents }: { agents: Opt[] }) {
       </div>
 
       <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>
-        Carriers at <strong>Documents Sent</strong>, <strong>Documents Received</strong>, or{" "}
-        <strong>Signed</strong> are left with the original agent. Every move is logged.
+        Carriers at <strong>Documents Sent</strong>, <strong>Documents Received</strong>,{" "}
+        <strong>Signed</strong>, or <strong>Active</strong> are left with the original agent.
+        Only fresh leads move. Every move is logged.
       </p>
 
       <SubmitButton>Reassign carriers</SubmitButton>
