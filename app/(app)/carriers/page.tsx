@@ -70,6 +70,25 @@ export default async function CarriersPage({
   const rows = (data ?? []) as unknown as Row[];
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
+  // Latest follow-up per visible carrier (RLS limits which follow-ups the
+  // viewer can read; carriers with none, or that they can't read, show "—").
+  const carrierIds = rows.map((r) => r.id);
+  const { data: fuData } = carrierIds.length
+    ? await supabase
+        .from("follow_ups")
+        .select("carrier_id, type, contacted_at")
+        .in("carrier_id", carrierIds)
+        .order("contacted_at", { ascending: false })
+    : { data: [] as { carrier_id: number; type: string; contacted_at: string | null }[] };
+  const latestFollowUp = new Map<number, { type: string; contacted_at: string | null }>();
+  for (const f of fuData ?? []) {
+    if (!latestFollowUp.has(f.carrier_id)) {
+      latestFollowUp.set(f.carrier_id, { type: f.type, contacted_at: f.contacted_at });
+    }
+  }
+  const fmtShort = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
+
   return (
     <>
       <div className="page-head">
@@ -108,26 +127,33 @@ export default async function CarriersPage({
                 <th>Status</th>
                 <th>Agent</th>
                 <th>Dispatcher</th>
+                <th>Latest follow-up</th>
                 <th>Last change</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <Link href={`/carriers/${r.id}`}>{r.company_name}</Link>
-                  </td>
-                  <td>
-                    <StatusBadge status={r.status} short />
-                  </td>
-                  <td>{r.sales_agents?.real_name ?? "—"}</td>
-                  <td>{r.dispatchers?.real_name ?? "—"}</td>
-                  <td className="num">{daysSince(r.status_changed_at)}</td>
-                </tr>
-              ))}
+              {rows.map((r) => {
+                const fu = latestFollowUp.get(r.id);
+                return (
+                  <tr key={r.id}>
+                    <td>
+                      <Link href={`/carriers/${r.id}`}>{r.company_name}</Link>
+                    </td>
+                    <td>
+                      <StatusBadge status={r.status} short />
+                    </td>
+                    <td>{r.sales_agents?.real_name ?? "—"}</td>
+                    <td>{r.dispatchers?.real_name ?? "—"}</td>
+                    <td className="muted">
+                      {fu ? `${fu.type} · ${fmtShort(fu.contacted_at)}` : "—"}
+                    </td>
+                    <td className="num">{daysSince(r.status_changed_at)}</td>
+                  </tr>
+                );
+              })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="empty">
+                  <td colSpan={6} className="empty">
                     No carriers found.
                   </td>
                 </tr>

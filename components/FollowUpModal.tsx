@@ -50,6 +50,7 @@ export function FollowUpModal({ carrierId }: { carrierId: number }) {
                   </label>
                   <select className="input" id="fu_type" name="type" defaultValue="Call">
                     <option>Call</option>
+                    <option>Voicemail</option>
                     <option>Text</option>
                     <option>Email</option>
                     <option>In-person</option>
