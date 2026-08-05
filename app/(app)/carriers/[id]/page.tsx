@@ -22,10 +22,15 @@ function fmtDateTime(d: string | null): string {
 
 export default async function CarrierDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  // Where the "← Carriers" link goes back to (the list page/filters we came from).
+  const backHref = from ? `/carriers?${from}` : "/carriers";
   const carrierId = Number(id);
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -125,7 +130,7 @@ export default async function CarrierDetailPage({
       <div className="page-head">
         <div>
           <div className="muted" style={{ fontSize: 13 }}>
-            <Link href="/carriers">← Carriers</Link>
+            <Link href={backHref}>← Carriers</Link>
           </div>
           <h1>{carrier.company_name}</h1>
         </div>
@@ -222,6 +227,8 @@ export default async function CarrierDetailPage({
             <dd>{carrier.truck_types?.code ?? "—"}</dd>
             <dt>Lead source</dt>
             <dd>{carrier.lead_source ?? "—"}</dd>
+            <dt>Remarks</dt>
+            <dd style={{ whiteSpace: "pre-wrap" }}>{carrier.remarks ?? "—"}</dd>
           </dl>
         </div>
         <div className="card">

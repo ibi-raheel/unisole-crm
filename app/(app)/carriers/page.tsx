@@ -4,13 +4,33 @@ import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CarrierFilters } from "@/components/CarrierFilters";
+import { CARRIER_STATUSES } from "@/lib/status";
 
 const PAGE_SIZE = 50;
 
+function ageInDays(ts: string | null): number | null {
+  return ts ? Math.floor((Date.now() - new Date(ts).getTime()) / 86_400_000) : null;
+}
 function daysSince(ts: string | null): string {
-  if (!ts) return "—";
-  const d = Math.floor((Date.now() - new Date(ts).getTime()) / 86_400_000);
-  return `${d}d`;
+  const d = ageInDays(ts);
+  return d == null ? "—" : `${d}d`;
+}
+
+// [warn, stale] day thresholds per status. Keys use the canonical constants
+// (byte-exact em-dash). Statuses not listed (Active/Dead/No Agreement) never age.
+const AGING: Record<string, [number, number]> = {
+  [CARRIER_STATUSES[0]]: [7, 14], // Lead
+  [CARRIER_STATUSES[1]]: [5, 10], // Documents Sent
+  [CARRIER_STATUSES[2]]: [5, 10], // Documents Received
+  [CARRIER_STATUSES[3]]: [10, 21], // Signed — Awaiting First Load
+};
+function agingLevel(status: string, ts: string | null): "ok" | "warn" | "stale" {
+  const days = ageInDays(ts);
+  const t = AGING[status];
+  if (days == null || !t) return "ok";
+  if (days >= t[1]) return "stale";
+  if (days >= t[0]) return "warn";
+  return "ok";
 }
 
 type Row = {
@@ -34,6 +54,17 @@ export default async function CarriersPage({
   const dispatcher = sp.dispatcher ?? "";
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
   const from = (page - 1) * PAGE_SIZE;
+
+  // The current list state, so opening a lead and coming back returns to the
+  // exact same page/filters (fixes "update a lead → jump to page 1").
+  const listParams = new URLSearchParams();
+  if (q) listParams.set("q", q);
+  if (status) listParams.set("status", status);
+  if (dispatcher) listParams.set("dispatcher", dispatcher);
+  if (page > 1) listParams.set("page", String(page));
+  const listQuery = listParams.toString();
+  const carrierHref = (id: number) =>
+    listQuery ? `/carriers/${id}?from=${encodeURIComponent(listQuery)}` : `/carriers/${id}`;
 
   const supabase = await createClient();
 
@@ -75,10 +106,9 @@ export default async function CarriersPage({
   const carrierIds = rows.map((r) => r.id);
   const { data: fuData } = carrierIds.length
     ? await supabase
-        .from("follow_ups")
+        .from("carrier_latest_followup")
         .select("carrier_id, type, contacted_at")
         .in("carrier_id", carrierIds)
-        .order("contacted_at", { ascending: false })
     : { data: [] as { carrier_id: number; type: string; contacted_at: string | null }[] };
   const latestFollowUp = new Map<number, { type: string; contacted_at: string | null }>();
   for (const f of fuData ?? []) {
@@ -137,7 +167,7 @@ export default async function CarriersPage({
                 return (
                   <tr key={r.id}>
                     <td>
-                      <Link href={`/carriers/${r.id}`}>{r.company_name}</Link>
+                      <Link href={carrierHref(r.id)}>{r.company_name}</Link>
                     </td>
                     <td>
                       <StatusBadge status={r.status} short />
@@ -147,7 +177,9 @@ export default async function CarriersPage({
                     <td className="muted">
                       {fu ? `${fu.type} · ${fmtShort(fu.contacted_at)}` : "—"}
                     </td>
-                    <td className="num">{daysSince(r.status_changed_at)}</td>
+                    <td className={`num age-${agingLevel(r.status, r.status_changed_at)}`}>
+                      {daysSince(r.status_changed_at)}
+                    </td>
                   </tr>
                 );
               })}
@@ -165,7 +197,7 @@ export default async function CarriersPage({
 
       {totalPages > 1 && (
         <div className="pagination">
-          <PageLink q={q} status={status} page={page - 1} disabled={page <= 1}>
+          <PageLink q={q} status={status} dispatcher={dispatcher} page={page - 1} disabled={page <= 1}>
             ‹ Prev
           </PageLink>
           <span className="muted num">
@@ -174,6 +206,7 @@ export default async function CarriersPage({
           <PageLink
             q={q}
             status={status}
+            dispatcher={dispatcher}
             page={page + 1}
             disabled={page >= totalPages}
           >
@@ -188,12 +221,14 @@ export default async function CarriersPage({
 function PageLink({
   q,
   status,
+  dispatcher,
   page,
   disabled,
   children,
 }: {
   q: string;
   status: string;
+  dispatcher: string;
   page: number;
   disabled: boolean;
   children: React.ReactNode;
@@ -207,6 +242,7 @@ function PageLink({
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (status) params.set("status", status);
+  if (dispatcher) params.set("dispatcher", dispatcher);
   params.set("page", String(page));
   return (
     <Link className="btn" href={`/carriers?${params.toString()}`}>

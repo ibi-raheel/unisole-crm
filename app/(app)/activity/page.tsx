@@ -79,20 +79,39 @@ export default async function ActivityPage() {
 
   const supabase = await createClient();
   const now = Date.now();
+  const startToday = new Date();
+  startToday.setHours(0, 0, 0, 0);
+  const todayISO = startToday.toISOString();
+  const weekISO = new Date(now - 7 * 86_400_000).toISOString();
 
-  const [{ data: profiles }, { data: agents }, { data: dispatchers }, { data: events }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, email, role, linked_agent_id, linked_dispatcher_id, is_active, last_seen_at, last_active_at"),
-      supabase.from("sales_agents").select("id, real_name"),
-      supabase.from("dispatchers").select("id, real_name"),
-      supabase
-        .from("auth_events")
-        .select("id, profile_id, kind, user_agent, created_at")
-        .order("created_at", { ascending: false })
-        .limit(60),
-    ]);
+  const [
+    { data: profiles },
+    { data: agents },
+    { data: dispatchers },
+    { data: events },
+    { data: statusHist },
+    { data: followUps },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, email, role, linked_agent_id, linked_dispatcher_id, is_active, last_seen_at, last_active_at"),
+    supabase.from("sales_agents").select("id, real_name"),
+    supabase.from("dispatchers").select("id, real_name"),
+    supabase
+      .from("auth_events")
+      .select("id, profile_id, kind, user_agent, created_at")
+      .order("created_at", { ascending: false })
+      .limit(60),
+    // Work signals over the last 7 days: status changes (by actor) + follow-ups.
+    supabase
+      .from("carrier_status_history")
+      .select("changed_by, changed_at")
+      .gte("changed_at", weekISO),
+    supabase
+      .from("follow_ups")
+      .select("sales_agent_id, contacted_at")
+      .gte("contacted_at", weekISO),
+  ]);
 
   const agentName = new Map<number, string>((agents ?? []).map((a) => [a.id, a.real_name]));
   const dispName = new Map<number, string>((dispatchers ?? []).map((d) => [d.id, d.real_name]));
@@ -117,6 +136,28 @@ export default async function ActivityPage() {
 
   const onlineCount = people.filter((x) => x.presence === "online").length;
   const idleCount = people.filter((x) => x.presence === "idle").length;
+
+  // ---- Work activity: is the person actually producing, not just online? ----
+  // "Actions" = status changes they made + follow-ups logged, today / last 7d.
+  const profileByAgent = new Map<number, string>();
+  for (const p of (profiles ?? []) as ProfileRow[]) {
+    if (p.linked_agent_id) profileByAgent.set(p.linked_agent_id, p.id);
+  }
+  const work = new Map<string, { today: number; week: number; last: string | null }>();
+  const bump = (pid: string | null | undefined, ts: string | null) => {
+    if (!pid || !ts) return;
+    const w = work.get(pid) ?? { today: 0, week: 0, last: null };
+    w.week += 1;
+    if (ts >= todayISO) w.today += 1;
+    if (!w.last || ts > w.last) w.last = ts;
+    work.set(pid, w);
+  };
+  for (const h of (statusHist ?? []) as { changed_by: string | null; changed_at: string }[]) {
+    bump(h.changed_by, h.changed_at);
+  }
+  for (const f of (followUps ?? []) as { sales_agent_id: number | null; contacted_at: string | null }[]) {
+    if (f.sales_agent_id) bump(profileByAgent.get(f.sales_agent_id), f.contacted_at);
+  }
 
   return (
     <>
@@ -166,6 +207,59 @@ export default async function ActivityPage() {
                   <td className="muted">{timeAgo(p.last_seen_at, now)}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Work activity — actually producing, not just logged in */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="section-title">Work activity (last 7 days)</div>
+        <p className="muted" style={{ fontSize: 12, margin: "0 0 10px" }}>
+          Actions = status changes made + follow-ups logged. Someone online with{" "}
+          <strong>0 today</strong> is present but not producing.
+        </p>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Person</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th className="num">Today</th>
+                <th className="num">Last 7 days</th>
+                <th>Last worked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {people.length === 0 && (
+                <tr><td colSpan={6} className="empty">No users yet.</td></tr>
+              )}
+              {people.map(({ p, name, presence }) => {
+                const w = work.get(p.id) ?? { today: 0, week: 0, last: null };
+                const idlePresent = (presence === "online" || presence === "idle") && w.today === 0;
+                return (
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 500 }}>{name}</td>
+                    <td className="muted">{roleLabel(p.role)}</td>
+                    <td>
+                      <span className={`presence-badge presence-${presence}`}>
+                        <span className={`dot dot-${presence}`} />
+                        {PRESENCE_LABEL[presence]}
+                      </span>
+                    </td>
+                    <td className="num">
+                      {idlePresent ? (
+                        <span className="badge badge-awaiting">0</span>
+                      ) : (
+                        <strong>{w.today}</strong>
+                      )}
+                    </td>
+                    <td className="num">{w.week}</td>
+                    <td className="muted">{w.last ? timeAgo(w.last, now) : "—"}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
