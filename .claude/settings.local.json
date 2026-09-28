@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(npm run *)",
-      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" -H \"apikey: sb_publishable_n9PejJ62P-cPJCwTXciGEQ_tOfUfbSC\" \"https://bmvcvwjqkgnyuldcvusm.supabase.co/rest/v1/truck_types?select=code&limit=1\")"
-    ]
-  }
-}
