@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src=".github/assets/cover.png" alt="Freightly" width="100%">
+<img src=".github/assets/cover.png" alt="UniSole CRM" width="100%">
 
-# Freightly
+# UniSole CRM
 
-**Dispatch CRM for a truck-dispatching company: sales pipeline, carriers, loads, and team targets in one place.**
+**Dispatch CRM for a truck-dispatching company: sales pipeline, carriers, loads and team targets in one place, with AI agents that onboard each new client on their own.**
 
 <p>
 <a href="https://unisole-crm.vercel.app"><img alt="Live" src="https://img.shields.io/badge/Live-open%20%E2%86%97-c8f560?style=for-the-badge&labelColor=0b0c10"></a>
-<a href="https://ibiraheel.com/p/freightly"><img alt="Case study" src="https://img.shields.io/badge/Case%20study-ibiraheel.com-0b0c10?style=for-the-badge&labelColor=c8f560"></a>
+<a href="https://ibiraheel.com"><img alt="Case study" src="https://img.shields.io/badge/Case%20study-ibiraheel.com-0b0c10?style=for-the-badge&labelColor=c8f560"></a>
 </p>
 
 <p>
