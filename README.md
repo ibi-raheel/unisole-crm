@@ -125,15 +125,7 @@ Four agents work inside the CRM. They start themselves from database triggers, s
 
 Plus **Who to call next** on `/agents`: an explainable score per open lead, with the reason written out.
 
-```
-carrier → "Documents Sent" ──trigger──▶ agent_runs (queued)
-                                             │  /api/agents/tick (cron) or right after the edit
-                                             ▼
-draft_contract → review_contract ─(issue)─▶ needs a person
-      → send_esign → waiting ─(DocuSign webhook)─▶ mark_received → send_package
-      → suggest_dispatcher → manager confirms on /agents → introduce_dispatcher
-      → hello_message → hello_call → done
-```
+<p align="center"><img src=".github/assets/agents-architecture.svg" alt="Onboarding: Documents Sent → draft contract → review → DocuSign → onboarding package → dispatcher → intro and hello → every step logged" width="100%"></p>
 
 **Practice mode (no keys).** Every outside service (Claude, DocuSign, email, WhatsApp, Twilio calls) switches on only when its key is set. Without keys the agents do everything except contact the outside world, and `/agents` shows exactly what they would have sent. *Simulate signature* stands in for DocuSign.
 
