@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "agents:demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents-demo.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

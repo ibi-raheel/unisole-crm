@@ -1,0 +1,62 @@
+<!doctype html><meta charset="utf-8"><title>UniSole · Agents</title><style>
+:root{--p7:#4a32a8;--p6:#5b41c2;--p2:#d3c9ef;--p50:#f7f5fd;--ink:#1d1830;--mut:#6b6580}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#f4f2fa;display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+nav{background:var(--p7);color:#fff;padding:20px 14px}nav b{display:block;font-size:16px;margin-bottom:18px}nav a{display:block;color:#e6e0fb;padding:7px 10px;border-radius:6px;text-decoration:none;font-size:13.5px}nav a.on{background:rgba(255,255,255,.16);color:#fff}
+main{padding:22px 28px;max-width:1200px}h1{margin:0;font-size:22px}h2{font-size:14px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.card{background:#fff;border:1px solid #e7e3f3;border-radius:10px;padding:16px 18px;margin-top:14px}.mut{color:var(--mut)}
+.mode{border-left:3px solid var(--p6);background:var(--p50)}.b{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;background:#ece9f7;color:var(--p7);margin:6px 6px 0 0}
+table{width:100%;border-collapse:collapse}th{text-align:left;font-size:11.5px;color:var(--mut);font-weight:600;padding:6px 8px;background:var(--p50)}td{padding:7px 8px;border-top:1px solid #f0edf8;font-size:13px;vertical-align:top}
+.st{padding:2px 8px;border-radius:999px;font-size:11.5px}.done{background:#dcfce7;color:#166534}.needs_approval{background:#fef3c7;color:#92400e}.waiting,.queued{background:#eef2ff;color:#3730a3}.failed{background:#fee2e2;color:#991b1b}
+.grid{display:grid;grid-template-columns:3fr 2fr;gap:14px}.grid .card{margin-top:14px}
+ol.tl{list-style:none;margin:0;padding:0 0 0 18px;border-left:2px solid var(--p2)}ol.tl li{position:relative;padding:0 0 12px 12px}ol.tl li:before{content:"";position:absolute;left:-25px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--p6)}
+ol.tl li.waiting:before,ol.tl li.needs_approval:before{background:#d97706}ol.tl strong{text-transform:capitalize}ol.tl p{margin:2px 0 0;font-size:12.5px}
+pre{white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--p50);padding:12px;border-radius:6px;margin:0}
+.btn{display:inline-block;border:1px solid #d9d3ee;border-radius:6px;padding:4px 10px;font-size:12px;background:#fff}.pri{background:#d6336c;color:#fff;border-color:#d6336c}
+</style><nav><b>UniSole CRM</b><a>Dashboard</a><a>Carriers</a><a>Loads</a><a>Team</a><a>Admin</a><a class="on">Agents</a></nav><main>
+<div style="display:flex;justify-content:space-between;align-items:end"><div><h1>Agents</h1><div class="mut">They onboard new carriers, chase quiet leads, write the paperwork and summarize the day. Every step is logged here.</div></div><div><span class="btn">Run now</span> <span class="btn">Run daily jobs</span></div></div>
+<div class="card mode"><strong>Practice mode.</strong> No keys are configured, so the agents do everything except contact the outside world. The outbox shows exactly what they would have sent.<br><span class="b">llm: practice</span><span class="b">esign: practice</span><span class="b">email: practice</span><span class="b">whatsapp: practice</span><span class="b">voice: practice</span></div>
+<div class="card"><h2>Needs a person</h2><table><tr><th>Carrier</th><th>Agent</th><th>Where it is</th><th></th></tr><tr><td>Hollow Creek Transport</td><td>Onboarding</td><td>A valid email is needed to send the agreement for signature. MC number "77" doesn't look valid (4–8 digits).</td><td style="text-align:right"><span class="btn">Retry</span></td></tr></table></div>
+<div class="grid"><div class="card"><h2>Ridgeway Haulers LLC · onboarding</h2><ol class="tl"><li class="ok"><strong>draft contract</strong> <span class="mut">10-13 14:00</span><p>Drafted "Dispatch Service Agreement — Ridgeway Haulers LLC" from the carrier's details and the standard terms.</p></li><li class="ok"><strong>review contract</strong> <span class="mut">10-13 14:00</span><p>Passed review (rules): company, contact email, MC number, terms.</p></li><li class="waiting"><strong>send esign</strong> <span class="mut">10-13 14:00</span><p>DocuSign envelope prepared (practice mode) to dana@ridgewayhaul.example; heads-up whatsapp drafted (practice mode). Waiting for the signature.</p></li><li class="waiting"><strong>await signature</strong> <span class="mut">10-15 14:00</span><p>No signature yet. Reminder 1 of 3: whatsapp drafted (practice mode).</p></li><li class="ok"><strong>await signature</strong> <span class="mut">10-15 19:00</span><p>DocuSign: the carrier signed.</p></li><li class="ok"><strong>mark received</strong> <span class="mut">10-15 19:00</span><p>Signed agreement received. Carrier moved to "Documents Received".</p></li><li class="ok"><strong>send package</strong> <span class="mut">10-15 19:00</span><p>Onboarding package: email drafted (practice mode); whatsapp drafted (practice mode).</p></li><li class="needs_approval"><strong>suggest dispatcher</strong> <span class="mut">10-15 19:00</span><p>Suggests Hira Malik (fewest open carriers: 4). Waiting for a manager to confirm.</p></li><li class="ok"><strong>await approval</strong> <span class="mut">10-15 19:00</span><p>ops@unisole.example confirmed the dispatcher.</p></li><li class="ok"><strong>introduce dispatcher</strong> <span class="mut">10-15 19:00</span><p>Assigned Hira Malik; carrier is now "Signed — Awaiting First Load". Introduction whatsapp drafted (practice mode); dispatcher brief email drafted (practice mode).</p></li><li class="ok"><strong>hello message</strong> <span class="mut">10-15 19:10</span><p>Hello message from Hira Malik: whatsapp drafted (practice mode).</p></li><li class="ok"><strong>hello call</strong> <span class="mut">10-15 19:40</span><p>Hello call: call drafted (practice mode). Onboarding complete.</p></li></ol></div>
+<div><div class="card" style="margin-top:14px"><h2>Recent runs</h2><table><tr><th>Job</th><th>Step</th><th>Status</th></tr><tr><td>Paperwork · Load #40</td><td>invoice</td><td><span class="st done">done</span></td></tr><tr><td>Paperwork · Load #40</td><td>rate confirmation</td><td><span class="st done">done</span></td></tr><tr><td>Daily summary · all carriers</td><td>digest</td><td><span class="st done">done</span></td></tr><tr><td>Follow-up · Hollow Creek Transport</td><td>nudge</td><td><span class="st done">done</span></td></tr><tr><td>Follow-up · Blue Mesa Freight</td><td>nudge</td><td><span class="st done">done</span></td></tr><tr><td>Onboarding · Hollow Creek Transport</td><td>review contract</td><td><span class="st needs_approval">needs approval</span></td></tr><tr><td>Onboarding · Ridgeway Haulers LLC</td><td>hello call</td><td><span class="st done">done</span></td></tr></table></div>
+<div class="card"><h2>The contract it drafted</h2><pre>DISPATCH SERVICE AGREEMENT
+Date: 2026-10-13
+
+Between UniSole IT Hub LLC ("Dispatcher") and Ridgeway Haulers LLC ("Carrier"), MC# MC-1184532.
+Carrier contact: Dana Whitfield · +1 (214) 555-0142 · dana@ridgewayhaul.example
+Equipment: SD
+
+1. Services. Dispatcher finds, negotiates and books freight loads for Carrier's trucks, and handles broker paperwork on Carrier's behalf.
+2. Fee. Carrier pays Dispatcher 5% of the gross rate of each load Dispatcher books. No fee is owed on loads Carrier books itself.
+3. Carrier's choice. Carrier may decline any load. Dispatcher never books a load without Carrier's confirmation.
+4. Documents. Carrier provides a current W-9, certificate of insurance and MC authority, and keeps them current.
+5. Payment. Dispatcher invoices after delivery; payment is due within 7 days.
+6. Term. This agreement continues until either side ends it with 14 days' written notice.
+
+Dispatcher: UniSole IT Hub LLC
+Carrier signature: ____________________</pre></div></div></div>
+<div class="card"><h2>Outbox (practice: drafted, not sent)</h2><table><tr><th>Channel</th><th>To</th><th>Message</th></tr><tr><td>email</td><td>dana@ridgewayhaul.example</td><td><strong>Invoice — load #40 · Ridgeway Haulers LLC.</strong> INVOICE · UniSole IT Hub LLC
+Bill to: Ridgeway Haulers LLC
+Date: 2026-10-18 · Due: 2026-10-25
+
+Dispatch service for load #40: Dallas, TX → Atlanta, GA
+Load rate $2,850.00 × 5.00% = $142.50
+
+…</td></tr><tr><td>email</td><td>dana@ridgewayhaul.example</td><td><strong>Rate confirmation — load #40 · Ridgeway Haulers LLC.</strong> RATE CONFIRMATION · Load #40
+Carrier: Ridgeway Haulers LLC
+Broker: Summit Logistics (MC# MC-998812)
+Pickup: Dallas, TX on 2026-10-20
+Delivery: Atlanta, GA on 2026-10-22
+Rate: $2,850.00
+Dispa…</td></tr><tr><td>email</td><td>ops@unisole.example</td><td><strong>Daily summary — 2026-10-16.</strong> Pipeline on 2026-10-16:
+  Lead: 1
+  Documents Sent: 1
+  Documents Received: 0
+  Signed — Awaiting First Load: 1
+  Active: 0
+  No Agreement: 0
+  Dead: 0
+
+Signed but no load yet (longest first…</td></tr><tr><td>whatsapp</td><td>+1 (214) 555-0142</td><td>Hi Amy, checking in on the UniSole IT Hub LLC dispatch agreement we sent. Any questions I can answer so we can get your truck loaded this week?</td></tr><tr><td>whatsapp</td><td>+1 (602) 555-0187</td><td>Hi Luis, this is UniSole IT Hub LLC dispatch. We have loads moving on lanes that fit your equipment. Want us to send over the agreement so we can start booking for you?</td></tr><tr><td>call</td><td>+1 (214) 555-0142</td><td>Hello Dana, this is the UniSole IT Hub LLC dispatch line, calling on behalf of Hira Malik, your new dispatcher. Welcome aboard. Hira will call you back today to talk through your lanes and y…</td></tr><tr><td>whatsapp</td><td>+1 (214) 555-0142</td><td>Hi Dana, Hira here, your dispatcher at UniSole IT Hub LLC. Glad to have you with us. What lanes do you want to run this week, and where is the truck right now?</td></tr><tr><td>email</td><td>hira@unisole.example</td><td><strong>New carrier: Ridgeway Haulers LLC.</strong> New carrier assigned to you: Ridgeway Haulers LLC (MC# MC-1184532).
+Contact: Dana Whitfield · +1 (214) 555-0142 · dana@ridgewayhaul.example
+Equipment: SD · Signed with sales agent Sara (Sale…</td></tr><tr><td>whatsapp</td><td>+1 (214) 555-0142</td><td>Hi Dana, meet Hira Malik, your dispatcher at UniSole IT Hub LLC. Hira will message you shortly, then call to learn your lanes and preferences. Save this number; this is your line to dispatch…</td></tr></table></div>
+</main>

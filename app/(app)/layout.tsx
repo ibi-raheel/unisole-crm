@@ -31,6 +31,7 @@ export default async function AppLayout({
   if (role === "admin") {
     items.push({ href: "/team", label: "Team", icon: "users" });
     items.push({ href: "/admin", label: "Admin", icon: "shield" });
+    items.push({ href: "/agents", label: "Agents", icon: "activity" });
   }
 
   const roleLabels: Record<string, string> = {

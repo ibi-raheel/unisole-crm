@@ -5,6 +5,7 @@ import { getProfile } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { FormState, fstr, fnum, today } from "./_util";
+import { kickAgents } from "@/lib/agents/kick";
 
 export async function createCarrier(
   _prev: FormState,
@@ -77,6 +78,7 @@ export async function updateCarrierDetails(
     .eq("id", id);
 
   if (error) return { error: error.message };
+  kickAgents();
   revalidatePath(`/carriers/${id}`);
   redirect(`/carriers/${id}`);
 }
@@ -99,6 +101,7 @@ export async function setCarrierStatus(
     .eq("id", id);
 
   if (error) return { error: error.message };
+  kickAgents();
   revalidatePath(`/carriers/${id}`);
   return { ok: true };
 }
@@ -131,6 +134,7 @@ export async function markMilestone(
   const supabase = await createClient();
   const { error } = await supabase.from("carriers").update(patch).eq("id", id);
   if (error) return { error: error.message };
+  kickAgents();
   revalidatePath(`/carriers/${id}`);
   return { ok: true };
 }
@@ -155,6 +159,7 @@ export async function assignDispatcher(
     .eq("id", id);
 
   if (error) return { error: error.message };
+  kickAgents();
   revalidatePath(`/carriers/${id}`);
   return { ok: true };
 }
@@ -178,6 +183,7 @@ export async function assignSalesAgent(
     .eq("id", id);
 
   if (error) return { error: error.message };
+  kickAgents();
   revalidatePath(`/carriers/${id}`);
   return { ok: true };
 }

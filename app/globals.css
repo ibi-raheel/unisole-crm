@@ -580,3 +580,26 @@ h2 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
 .fn-awaiting { background: var(--st-awaiting); }
 .fn-active { background: var(--st-active); }
 @media (max-width: 720px) { .fn-row { grid-template-columns: 120px 1fr; } }
+
+/* ---- Agents (/agents) ---- */
+.agent-mode { border-left: 3px solid var(--purple-600, #6d28d9); }
+.agent-mode.is-practice { background: var(--purple-50, #f5f3ff); }
+.agent-modes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.agent-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; margin-top: 16px; }
+.agent-grid .card + .card { margin-top: 0; }
+@media (max-width: 900px) { .agent-grid { grid-template-columns: 1fr; } }
+.agent-next { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 13px; }
+.agent-next b { float: right; color: var(--purple-700, #5b21b6); }
+.agent-msg { max-width: 520px; font-size: 12.5px; }
+.agent-st-queued, .agent-st-waiting { background: #eef2ff; color: #3730a3; }
+.agent-st-needs_approval { background: #fef3c7; color: #92400e; }
+.agent-st-done { background: #dcfce7; color: #166534; }
+.agent-st-failed { background: #fee2e2; color: #991b1b; }
+.agent-timeline { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 2px solid var(--purple-200, #ddd6fe); }
+.agent-timeline li { position: relative; padding: 0 0 14px 12px; }
+.agent-timeline li::before { content: ""; position: absolute; left: -25px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--purple-600, #6d28d9); }
+.agent-timeline li.is-waiting::before, .agent-timeline li.is-needs_approval::before { background: #d97706; }
+.agent-timeline li.is-failed::before { background: #dc2626; }
+.agent-timeline .at-head { display: flex; justify-content: space-between; gap: 12px; text-transform: capitalize; }
+.agent-timeline p { margin: 2px 0 0; font-size: 13px; }
+.agent-doc { white-space: pre-wrap; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--purple-50, #f5f3ff); padding: 14px; border-radius: 6px; margin: 0; }
